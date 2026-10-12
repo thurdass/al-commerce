@@ -1,58 +1,137 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AL Commerce
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Encontre produtos disponíveis no comércio local e fale diretamente com a loja.
 
-## About Laravel
+O AL Commerce é uma plataforma de vitrines virtuais para o comércio local, desenvolvida com PHP e Laravel. A proposta é permitir que lojistas divulguem suas lojas e produtos em páginas públicas e que os clientes entrem em contato pelo WhatsApp para negociar diretamente com a loja.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Este README é provisório e acompanha o desenvolvimento do projeto em etapas.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Estado atual
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+A primeira etapa implementa a estrutura inicial de dados:
 
-## Learning Laravel
+- Models `User`, `Store` e `Product`, com relacionamentos Eloquent.
+- Migrations com chaves estrangeiras e restrições de unicidade.
+- Enum `ProductAvailabilityStatus` para disponibilidade dos produtos.
+- Factories e testes de persistência, relacionamentos e integridade dos dados.
+- SQLite para desenvolvimento local e banco em memória para os testes.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Ainda não existem telas do AL Commerce, endpoints de cadastro ou páginas públicas. A rota inicial exibe a página padrão do Laravel. Autenticação, geração automática de slugs, categorias de produtos, imagens múltiplas, métricas e integração com WhatsApp serão desenvolvidas em etapas posteriores.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Escopo previsto para o MVP
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- Cadastro, login e logout de lojistas.
+- Criação e edição de uma loja por lojista.
+- Cadastro e gerenciamento de produtos, com preço, disponibilidade e imagens.
+- Páginas públicas de lojas e produtos.
+- Busca por nome e filtro por categoria.
+- Botão de contato via WhatsApp com mensagem preenchida.
+- Dashboard do lojista com métricas básicas de visualizações e cliques.
 
-## Agentic Development
+O MVP não terá pagamentos, carrinho, checkout ou chat interno. O perfil de administrador e o filtro por cidade ficam para versões futuras.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Rotas públicas planejadas, ainda não implementadas:
 
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+/loja/{storeSlug}
+/loja/{storeSlug}/produto/{productSlug}
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Tecnologias
 
-## Contributing
+- PHP 8.3 ou superior, conforme as dependências do Composer.
+- Laravel 13.
+- SQLite.
+- PHPUnit para testes.
+- Laravel Pint para formatação.
+- Laravel Boost como ferramenta de apoio ao desenvolvimento.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Configuração local
 
-## Code of Conduct
+É necessário ter PHP, Composer e a extensão `pdo_sqlite` disponíveis. Para instalar o driver no Ubuntu com PHP 8.3:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+sudo apt install php8.3-sqlite3
+```
 
-## Security Vulnerabilities
+Na raiz do projeto, instale as dependências e prepare o ambiente:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+composer install
+composer check-platform-reqs
+php -r "file_exists('.env') || copy('.env.example', '.env');"
+```
 
-## License
+Na primeira configuração, caso `APP_KEY` esteja vazio no `.env`, gere a chave:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan key:generate
+```
+
+A configuração padrão do banco no `.env` é:
+
+```dotenv
+DB_CONNECTION=sqlite
+DB_FOREIGN_KEYS=true
+```
+
+Sem definir `DB_DATABASE`, a aplicação utiliza `database/database.sqlite`. Crie o arquivo, caso ainda não exista, e aplique as migrations:
+
+```bash
+php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+php artisan config:clear
+php artisan migrate
+```
+
+Para iniciar o servidor de desenvolvimento:
+
+```bash
+php artisan serve
+```
+
+O comando informa o endereço local de acesso. A etapa atual não exige instalação ou compilação de dependências de frontend.
+
+## Modelagem inicial
+
+| Entidade | Relações e regras |
+| --- | --- |
+| `User` | Pode existir sem loja e possuir no máximo uma `Store`. |
+| `Store` | Pertence a um `User`, possui vários produtos e tem slug único na plataforma. |
+| `Product` | Pertence a uma `Store` e tem slug único dentro dessa loja. |
+
+O preço usa `decimal(10,2)` e cast `decimal:2`. O estoque é opcional: `null` representa uma quantidade não informada, enquanto `0` representa estoque zerado.
+
+Os valores de disponibilidade são `AVAILABLE`, `LOW_STOCK`, `OUT_OF_STOCK` e `INACTIVE`. O campo `active` permite registrar a ativação ou desativação de lojas e produtos. Nesta etapa, não há cálculo automático de disponibilidade a partir do estoque nem sincronização automática entre `active` e o status.
+
+A exclusão de um usuário remove sua loja e os produtos vinculados; a exclusão de uma loja remove seus produtos. Desativar um registro preserva seus dados.
+
+A categoria da loja é um campo de texto. A entidade `Category` e o vínculo `category_id` do produto ainda não existem. Os campos de WhatsApp, logo e capa da loja são apenas dados cadastrais, sem integração ou upload implementados.
+
+## Testes
+
+Execute a suíte completa:
+
+```bash
+composer test
+```
+
+Para executar apenas os testes dos models:
+
+```bash
+php artisan test --compact tests/Feature/Models
+```
+
+Os testes utilizam SQLite em memória, configurado em `phpunit.xml`. Eles verificam relacionamentos, unicidade dos slugs, limite de uma loja por usuário, status, casts e exclusões em cascata.
+
+## Organização
+
+```text
+app/Models/                        Models User, Store e Product
+app/ProductAvailabilityStatus.php  Enum de disponibilidade
+database/migrations/               Estrutura do banco
+database/factories/                 Dados para testes
+tests/Feature/Models/               Testes dos models
+config/database.php                Configuração das conexões
+```
+
+As próximas etapas serão definidas e implementadas mediante autorização, mantendo o foco no MVP.
