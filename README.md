@@ -14,7 +14,7 @@ As Etapas 1 e 2 estão implementadas. A base de dados inclui:
 - Migrations com chaves estrangeiras e restrições de unicidade.
 - Enum `ProductAvailabilityStatus` para disponibilidade dos produtos.
 - Factories e testes de persistência, relacionamentos e integridade dos dados.
-- SQLite para desenvolvimento local e banco em memória para os testes.
+- MySQL para desenvolvimento local e SQLite em memória para os testes.
 
 A área do lojista já permite:
 
@@ -48,17 +48,18 @@ Rotas públicas planejadas, ainda não implementadas:
 
 - PHP 8.3 ou superior, conforme as dependências do Composer.
 - Laravel 13.
-- SQLite.
+- MySQL 8.4 para desenvolvimento.
+- SQLite em memória para testes automatizados.
 - PHPUnit para testes.
 - Laravel Pint para formatação.
 - Laravel Boost como ferramenta de apoio ao desenvolvimento.
 
 ## Configuração local
 
-É necessário ter PHP, Composer e a extensão `pdo_sqlite` disponíveis. Para instalar o driver no Ubuntu com PHP 8.3:
+É necessário ter PHP, Composer, MySQL e as extensões `pdo_mysql` e `pdo_sqlite` disponíveis. A primeira atende à aplicação; a segunda, aos testes. Para instalar os drivers no Ubuntu com PHP 8.3:
 
 ```bash
-sudo apt install php8.3-sqlite3
+sudo apt install php8.3-mysql php8.3-sqlite3
 ```
 
 Na raiz do projeto, instale as dependências e prepare o ambiente:
@@ -75,20 +76,30 @@ Na primeira configuração, caso `APP_KEY` esteja vazio no `.env`, gere a chave:
 php artisan key:generate
 ```
 
-A configuração padrão do banco no `.env` é:
+Disponibilize um banco MySQL chamado `al_commerce`, com charset `utf8mb4` e collation `utf8mb4_unicode_ci`. Use uma conta exclusiva, como `al_commerce_app`, com privilégios somente nesse banco, suficientes para executar as migrations. O usuário `root` fica reservado à administração do servidor.
+
+A configuração de desenvolvimento no `.env` é:
 
 ```dotenv
-DB_CONNECTION=sqlite
-DB_FOREIGN_KEYS=true
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=al_commerce
+DB_USERNAME=al_commerce_app
+DB_PASSWORD=
 ```
 
-Sem definir `DB_DATABASE`, a aplicação utiliza `database/database.sqlite`. Crie o arquivo, caso ainda não exista, e aplique as migrations:
+Preencha `DB_PASSWORD` diretamente no `.env` com a senha real da conta. O arquivo é ignorado pelo Git; `.env.example` contém apenas valores de exemplo, sem senha. Mantenha `DB_URL` ausente, a menos que esteja usando intencionalmente uma URL de conexão, pois ela pode substituir os campos individuais.
+
+Depois de configurar a conexão, aplique as migrations:
 
 ```bash
-php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
-php artisan config:clear
-php artisan migrate
+php artisan config:clear --no-interaction
+php artisan migrate --no-interaction
+php artisan migrate:status --no-interaction
 ```
+
+**Instalações que já possuem dados em SQLite:** trocar o `.env` e executar migrations não transfere registros. Faça um backup consistente e transfira os dados preservando IDs, relacionamentos, hashes de senhas e timestamps antes de concluir a troca. Compare o conteúdo dos bancos e mantenha o SQLite original como backup. A aplicação passa a usar somente MySQL; SQLite permanece no fluxo automatizado de testes.
 
 Para iniciar o servidor de desenvolvimento:
 
@@ -174,7 +185,7 @@ Para executar os testes dos fluxos HTTP:
 php artisan test --compact tests/Feature/Http
 ```
 
-Os testes utilizam SQLite em memória, configurado em `phpunit.xml`. A cobertura inclui autenticação, sessões, limite de tentativas, validação, autorização, slugs, ativação/desativação, dashboard, relacionamentos e preservação dos dados durante a migration de categoria e sua reversão.
+Os testes utilizam SQLite em memória, configurado em `phpunit.xml`. As variáveis `DB_CONNECTION`, `DB_DATABASE`, `DB_URL` e `DB_FOREIGN_KEYS` têm valores forçados para isolar a suíte do MySQL de desenvolvimento. `composer test` limpa o cache de configuração antes de executar os testes. A cobertura inclui autenticação, sessões, limite de tentativas, validação, autorização, slugs, ativação/desativação, dashboard, relacionamentos e preservação dos dados durante a migration de categoria e sua reversão.
 
 ## Organização
 
