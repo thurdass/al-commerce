@@ -64,4 +64,40 @@ class SaveStoreTest extends TestCase
             $this->assertDatabaseCount('stores', 1);
         }
     }
+
+    public function test_retries_a_slug_collision_detected_during_update(): void
+    {
+        Store::factory()->create(['slug' => 'taken']);
+        $store = Store::factory()->create();
+        $collide = true;
+        Store::updating(function (Store $store) use (&$collide): void {
+            if ($collide) {
+                $store->slug = 'taken';
+                $collide = false;
+            }
+        });
+
+        app(SaveStore::class)->handle($store, ['name' => 'Nova Loja']);
+
+        $this->assertSame('nova-loja', $store->fresh()->slug);
+        $this->assertDatabaseCount('stores', 2);
+    }
+
+    public function test_repeated_update_collisions_do_not_persist_partial_changes(): void
+    {
+        Store::factory()->create(['slug' => 'taken']);
+        $store = Store::factory()->create()->refresh();
+        $original = $store->getAttributes();
+        Store::updating(function (Store $store): void {
+            $store->slug = 'taken';
+        });
+
+        try {
+            app(SaveStore::class)->handle($store, ['name' => 'Novo Nome', 'city' => 'Outra Cidade']);
+            $this->fail('A conflicting slug must not be persisted.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(['name' => ['Não foi possível reservar um slug. Tente novamente.']], $exception->errors());
+            $this->assertSame($original, $store->fresh()->getAttributes());
+        }
+    }
 }

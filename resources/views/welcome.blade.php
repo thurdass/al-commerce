@@ -10,6 +10,9 @@
         @can('create', App\Models\Store::class)
             <a href="{{ route('stores.create') }}">Criar minha loja</a>
         @endcan
+        @if ($store)
+            <a href="{{ route('stores.edit', $store) }}">Editar minha loja</a>
+        @endif
     @else
         <p>É lojista? <a href="{{ route('register') }}">Crie sua conta</a> ou <a href="{{ route('login') }}">entre para continuar</a>.</p>
     @endauth

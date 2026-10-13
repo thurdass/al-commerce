@@ -164,6 +164,141 @@ class StoreControllerTest extends TestCase
             ->get(route('stores.create'))->assertOk()->assertSee($name)->assertDontSee($name, false);
     }
 
+    public function test_owner_can_view_store_edit_form(): void
+    {
+        $store = Store::factory()->create();
+
+        $this->actingAs($store->user)->get(route('stores.edit', $store))->assertOk()
+            ->assertViewIs('stores.edit')->assertSee($store->name)->assertSee($store->slug)
+            ->assertSee('name="_token"', false)->assertSee('name="_method" value="PUT"', false);
+    }
+
+    public function test_owner_can_update_allowed_store_fields(): void
+    {
+        $store = Store::factory()->create();
+        $otherUser = User::factory()->create();
+        $originalCategory = $store->category;
+
+        $this->actingAs($store->user)->put(route('stores.update', $store), $this->payload([
+            'name' => 'Tech Bahia Centro',
+            'description' => 'Loja no centro de Salvador.',
+            'whatsapp' => '5571988888888',
+            'city' => 'Feira de Santana',
+            'state' => 'ba',
+            'address' => 'Rua do Comércio, 42',
+            'user_id' => $otherUser->id,
+            'slug' => 'injected',
+            'category' => 'injected',
+            'logo' => 'injected.png',
+        ]))->assertRedirectToRoute('stores.edit', $store)->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('stores', [
+            'id' => $store->id, 'user_id' => $store->user_id,
+            'name' => 'Tech Bahia Centro', 'slug' => 'tech-bahia-centro',
+            'description' => 'Loja no centro de Salvador.', 'whatsapp' => '5571988888888',
+            'city' => 'Feira de Santana', 'state' => 'BA', 'address' => 'Rua do Comércio, 42',
+            'category' => $originalCategory, 'logo' => null,
+        ]);
+        $this->assertNull($otherUser->fresh()->store);
+        $this->assertDatabaseCount('stores', 1);
+    }
+
+    public function test_guest_cannot_view_edit_form_or_update_store(): void
+    {
+        $store = Store::factory()->create();
+        $original = $store->fresh()->getAttributes();
+
+        $this->get(route('stores.edit', $store))->assertRedirectToRoute('login');
+        $this->put(route('stores.update', $store), $this->payload())->assertRedirectToRoute('login');
+
+        $this->assertSame($original, $store->fresh()->getAttributes());
+    }
+
+    public function test_other_user_cannot_view_edit_form_or_update_store_and_gets_404(): void
+    {
+        $store = Store::factory()->create();
+        $otherUser = User::factory()->create();
+        $original = $store->fresh()->getAttributes();
+
+        $this->actingAs($otherUser)->get(route('stores.edit', $store))->assertNotFound();
+        $this->put(route('stores.update', $store), $this->payload(['user_id' => $otherUser->id]))->assertNotFound();
+        $this->put(route('stores.update', $store), [])->assertNotFound();
+
+        $this->assertSame($original, $store->fresh()->getAttributes());
+    }
+
+    public function test_editing_missing_store_returns_404(): void
+    {
+        $this->actingAs(User::factory()->create())->get(route('stores.edit', 999))->assertNotFound();
+        $this->put(route('stores.update', 999), $this->payload())->assertNotFound();
+    }
+
+    public function test_changing_store_name_avoids_existing_slugs(): void
+    {
+        Store::factory()->create(['slug' => 'tech-bahia']);
+        Store::factory()->create(['slug' => 'tech-bahia-2']);
+        $store = Store::factory()->create();
+
+        $this->actingAs($store->user)->put(route('stores.update', $store), $this->payload())
+            ->assertRedirectToRoute('stores.edit', $store);
+
+        $this->assertSame('tech-bahia-3', $store->fresh()->slug);
+    }
+
+    public function test_renaming_store_excludes_its_own_slug_from_conflicts(): void
+    {
+        $store = Store::factory()->create(['name' => 'TECH BAHIA', 'slug' => 'tech-bahia']);
+
+        $this->actingAs($store->user)->put(route('stores.update', $store), $this->payload())
+            ->assertRedirectToRoute('stores.edit', $store);
+
+        $this->assertSame('tech-bahia', $store->fresh()->slug);
+    }
+
+    public function test_unchanged_name_preserves_existing_slug_and_ignores_submitted_slug(): void
+    {
+        $store = Store::factory()->create(['name' => 'Tech Bahia', 'slug' => 'tech-bahia-2']);
+
+        $this->actingAs($store->user)->put(route('stores.update', $store), $this->payload(['slug' => 'injected']))
+            ->assertRedirectToRoute('stores.edit', $store);
+
+        $this->assertSame('tech-bahia-2', $store->fresh()->slug);
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_owner_can_activate_and_deactivate_store(bool $active): void
+    {
+        $store = Store::factory()->create(['active' => ! $active]);
+
+        $this->actingAs($store->user)->patch(route('stores.update', $store), $this->payload([
+            'name' => $store->name, 'active' => $active,
+        ]))->assertRedirectToRoute('stores.edit', $store);
+
+        $this->assertSame($active, $store->fresh()->active);
+    }
+
+    public function test_owner_can_clear_optional_address(): void
+    {
+        $store = Store::factory()->create(['address' => 'Rua Bahia']);
+
+        $this->actingAs($store->user)->put(route('stores.update', $store), $this->payload(['address' => '']))
+            ->assertRedirectToRoute('stores.edit', $store);
+
+        $this->assertNull($store->fresh()->address);
+    }
+
+    public function test_edit_form_escapes_all_free_text_fields(): void
+    {
+        $dangerous = '<script>alert(1)</script>';
+        $store = Store::factory()->create([
+            'name' => $dangerous, 'description' => $dangerous, 'city' => $dangerous, 'address' => $dangerous,
+        ]);
+
+        $this->actingAs($store->user)->get(route('stores.edit', $store))->assertOk()
+            ->assertSee($dangerous)->assertDontSee($dangerous, false);
+    }
+
     /** @return array<string, mixed> */
     private function payload(array $changes = []): array
     {

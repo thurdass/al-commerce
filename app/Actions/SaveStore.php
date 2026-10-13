@@ -15,9 +15,12 @@ class SaveStore
     public function handle(Store $store, array $attributes): Store
     {
         $store->fill($attributes);
+        $regenerateSlug = ! $store->exists || $store->isDirty('name');
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $store->slug = $this->slugs->handle($store->name);
+            if ($regenerateSlug) {
+                $store->slug = $this->slugs->handle($store->name, $store->getKey());
+            }
 
             try {
                 return DB::transaction(function () use ($store): Store {
@@ -26,7 +29,7 @@ class SaveStore
                     return $store;
                 });
             } catch (UniqueConstraintViolationException) {
-                if (Store::query()->where('user_id', $store->user_id)->exists()) {
+                if (! $store->exists && Store::query()->where('user_id', $store->user_id)->exists()) {
                     throw ValidationException::withMessages(['name' => 'Você já possui uma loja.']);
                 }
 
