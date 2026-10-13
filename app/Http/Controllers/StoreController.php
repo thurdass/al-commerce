@@ -4,15 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Actions\SaveStore;
 use App\Http\Requests\CreateStoreRequest;
+use App\Models\Store;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class StoreController extends Controller
 {
-    public function create(Request $request): View
+    public function create(): View
     {
-        abort_if($request->user()->store()->exists(), 403, 'Você já possui uma loja.');
+        Gate::authorize('create', Store::class);
 
         return view('stores.create');
     }

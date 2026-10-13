@@ -2,14 +2,17 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Store;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class CreateStoreRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        return $this->user() !== null && ! $this->user()->store()->exists();
+        return Gate::inspect('create', Store::class);
     }
 
     /** @return array<string, array<mixed>> */
