@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateProduct;
 use App\Http\Requests\CreateProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use App\Http\Requests\UpdateProductStatusRequest;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,5 +37,26 @@ class ProductController extends Controller
             'store' => $store,
             'products' => $store->products()->orderByDesc('id')->paginate(15),
         ]);
+    }
+
+    public function edit(Product $product): View
+    {
+        Gate::authorize('update', $product);
+
+        return view('products.edit', ['product' => $product]);
+    }
+
+    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
+    {
+        $product->update($request->validated());
+
+        return to_route('products.edit', $product)->with('status', 'Produto atualizado com sucesso.');
+    }
+
+    public function updateStatus(UpdateProductStatusRequest $request, Product $product): RedirectResponse
+    {
+        $product->update($request->validated());
+
+        return to_route('products.index')->with('status', $product->active ? 'Produto ativado.' : 'Produto desativado.');
     }
 }

@@ -31,4 +31,20 @@ class ProductPolicyTest extends TestCase
         $this->assertFalse(Gate::forUser(User::factory()->create())->allows('create', Product::class));
         $this->assertFalse(Gate::allows('create', Product::class));
     }
+
+    public function test_only_owner_can_update_active_or_inactive_products(): void
+    {
+        $store = Store::factory()->inactive()->create();
+        $other = Store::factory()->create();
+        $withoutStore = User::factory()->create();
+        $active = Product::factory()->for($store)->create();
+        $inactive = Product::factory()->for($store)->inactive()->create();
+
+        foreach ([$active, $inactive] as $product) {
+            $this->assertTrue(Gate::forUser($store->user)->allows('update', $product));
+            $this->assertSame(404, Gate::forUser($other->user)->inspect('update', $product)->status());
+            $this->assertSame(404, Gate::forUser($withoutStore)->inspect('update', $product)->status());
+            $this->assertFalse(Gate::allows('update', $product));
+        }
+    }
 }

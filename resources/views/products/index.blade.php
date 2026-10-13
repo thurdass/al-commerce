@@ -22,6 +22,15 @@
                 <dt>Status</dt>
                 <dd>{{ $product->active ? 'Ativo' : 'Inativo' }}</dd>
             </dl>
+            <div class="actions">
+                <a href="{{ route('products.edit', $product) }}">Editar</a>
+                <form method="POST" action="{{ route('products.status', $product) }}">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="active" value="{{ $product->active ? '0' : '1' }}">
+                    <button type="submit">{{ $product->active ? 'Desativar' : 'Ativar' }}</button>
+                </form>
+            </div>
         </article>
     @empty
         <p>Nenhum produto cadastrado.</p>

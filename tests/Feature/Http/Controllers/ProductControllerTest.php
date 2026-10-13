@@ -232,6 +232,153 @@ class ProductControllerTest extends TestCase
             ->assertSee($description)->assertDontSee($description, false);
     }
 
+    public function test_owner_can_edit_all_allowed_fields_without_changing_slug_or_store(): void
+    {
+        $store = Store::factory()->inactive()->create();
+        $product = Product::factory()->for($store)->inactive()->create(['slug' => 'original']);
+        $other = Product::factory()->create(['slug' => 'renamed']);
+        $this->actingAs($store->user)->get(route('products.edit', $product))->assertOk()
+            ->assertViewIs('products.edit')->assertSee($product->name)
+            ->assertSee('name="_token"', false)->assertSee('name="_method" value="PUT"', false);
+
+        $this->put(route('products.update', $product), $this->payload([
+            'name' => 'Renamed', 'description' => 'Nova descrição', 'price' => '12.34',
+            'stock_quantity' => '5', 'availability_status' => 'LOW_STOCK',
+            'slug' => 'renamed', 'store_id' => $other->store_id, 'id' => $other->id,
+        ]))->assertRedirectToRoute('products.edit', $product)->assertSessionHasNoErrors();
+
+        $product->refresh();
+        $this->assertSame('original', $product->slug);
+        $this->assertSame($store->id, $product->store_id);
+        $this->assertSame('Renamed', $product->name);
+        $this->assertSame('Nova descrição', $product->description);
+        $this->assertSame('12.34', $product->price);
+        $this->assertSame(5, $product->stock_quantity);
+        $this->assertSame(ProductAvailabilityStatus::LowStock, $product->availability_status);
+        $this->assertTrue($product->active);
+        $this->assertSame('renamed', $other->fresh()->slug);
+    }
+
+    public function test_invalid_update_preserves_product_and_returns_old_input(): void
+    {
+        $product = Product::factory()->create()->refresh();
+        $original = $product->getAttributes();
+
+        $this->actingAs($product->store->user)->from(route('products.edit', $product))
+            ->put(route('products.update', $product), $this->payload(['name' => 'Alterado', 'price' => '-1']))
+            ->assertRedirectToRoute('products.edit', $product)
+            ->assertSessionHasErrors(['price' => 'O preço não pode ser negativo.'])
+            ->assertSessionHasInput('name', 'Alterado');
+
+        $this->assertSame($original, $product->fresh()->getAttributes());
+    }
+
+    public function test_owner_can_clear_stock_and_deactivate_using_edit_form(): void
+    {
+        $product = Product::factory()->create(['stock_quantity' => 10]);
+
+        $this->actingAs($product->store->user)->patch(route('products.update', $product), $this->payload([
+            'stock_quantity' => '', 'active' => '0',
+        ]))->assertRedirectToRoute('products.edit', $product);
+
+        $this->assertNull($product->fresh()->stock_quantity);
+        $this->assertFalse($product->fresh()->active);
+    }
+
+    public function test_status_updates_are_idempotent_and_do_not_change_other_fields(): void
+    {
+        $product = Product::factory()->create([
+            'name' => 'Mouse original', 'slug' => 'original', 'availability_status' => ProductAvailabilityStatus::LowStock,
+        ])->refresh();
+        $original = $product->getAttributes();
+        unset($original['active'], $original['updated_at']);
+        $other = Store::factory()->create();
+        $this->actingAs($product->store->user);
+
+        foreach (['0', '0', '1', '1'] as $active) {
+            $this->patch(route('products.status', $product), [
+                'active' => $active, 'name' => 'Injected', 'slug' => 'injected', 'store_id' => $other->id,
+                'availability_status' => 'INACTIVE', 'stock_quantity' => 999, 'price' => 999,
+            ])->assertRedirectToRoute('products.index')->assertSessionHas('status', $active === '1' ? 'Produto ativado.' : 'Produto desativado.');
+
+            $this->assertSame($active === '1', $product->fresh()->active);
+            $attributes = $product->fresh()->getAttributes();
+            unset($attributes['active'], $attributes['updated_at']);
+            $this->assertSame($original, $attributes);
+        }
+    }
+
+    public function test_status_change_requires_a_valid_active_flag(): void
+    {
+        $product = Product::factory()->create()->refresh();
+        $original = $product->getAttributes();
+        $this->actingAs($product->store->user);
+
+        $this->patch(route('products.status', $product), [])->assertSessionHasErrors([
+            'active' => 'Informe o status do produto.',
+        ]);
+        $this->patch(route('products.status', $product), ['active' => 'bad'])->assertSessionHasErrors([
+            'active' => 'Informe um status válido para o produto.',
+        ]);
+
+        $this->assertSame($original, $product->fresh()->getAttributes());
+    }
+
+    #[DataProvider('editingEndpoints')]
+    public function test_guest_cannot_access_product_editing(string $method, string $route): void
+    {
+        $product = Product::factory()->create()->refresh();
+        $original = $product->getAttributes();
+
+        $this->{$method}(route($route, $product), $this->payload())->assertRedirectToRoute('login');
+
+        $this->assertSame($original, $product->fresh()->getAttributes());
+    }
+
+    #[DataProvider('editingEndpoints')]
+    public function test_other_merchant_cannot_access_product_editing(string $method, string $route): void
+    {
+        $product = Product::factory()->create()->refresh();
+        $original = $product->getAttributes();
+        $other = Store::factory()->create();
+
+        $this->actingAs($other->user)->{$method}(route($route, $product), [])->assertNotFound();
+
+        $this->assertSame($original, $product->fresh()->getAttributes());
+    }
+
+    #[DataProvider('editingEndpoints')]
+    public function test_missing_product_returns_not_found(string $method, string $route): void
+    {
+        $store = Store::factory()->create();
+
+        $this->actingAs($store->user)->{$method}(route($route, 999), $this->payload())->assertNotFound();
+    }
+
+    public static function editingEndpoints(): array
+    {
+        return [
+            'edit form' => ['get', 'products.edit'],
+            'update' => ['put', 'products.update'],
+            'activation' => ['patch', 'products.status'],
+        ];
+    }
+
+    public function test_edit_form_escapes_persisted_text(): void
+    {
+        $product = Product::factory()->create([
+            'name' => '<script>name()</script>',
+            'description' => '</textarea><script>description()</script>',
+            'slug' => '<script>slug()</script>',
+        ]);
+
+        $response = $this->actingAs($product->store->user)->get(route('products.edit', $product))->assertOk();
+
+        foreach ([$product->name, $product->description, $product->slug] as $value) {
+            $response->assertSee($value)->assertDontSee($value, false);
+        }
+    }
+
     /** @param array<string, mixed> $changes
      * @return array<string, mixed>
      */

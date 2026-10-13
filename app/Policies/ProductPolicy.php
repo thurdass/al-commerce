@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -17,5 +18,12 @@ class ProductPolicy
         return $user->store()->exists()
             ? Response::allow()
             : Response::deny('Crie sua loja antes de gerenciar produtos.');
+    }
+
+    public function update(User $user, Product $product): Response
+    {
+        return $user->store()->whereKey($product->store_id)->exists()
+            ? Response::allow()
+            : Response::denyAsNotFound();
     }
 }

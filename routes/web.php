@@ -23,6 +23,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/minha-loja/produtos/criar', [ProductController::class, 'create'])->name('products.create');
     Route::post('/minha-loja/produtos', [ProductController::class, 'store'])->name('products.store');
     Route::get('/minha-loja/produtos', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/minha-loja/produtos/{product}/editar', [ProductController::class, 'edit'])->whereNumber('product')->name('products.edit');
+    Route::match(['put', 'patch'], '/minha-loja/produtos/{product}', [ProductController::class, 'update'])->whereNumber('product')->name('products.update');
+    Route::patch('/minha-loja/produtos/{product}/status', [ProductController::class, 'updateStatus'])->whereNumber('product')->name('products.status');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/minha-loja/criar', [StoreController::class, 'create'])->name('stores.create');
     Route::post('/minha-loja', [StoreController::class, 'store'])->name('stores.store');
