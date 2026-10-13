@@ -22,4 +22,13 @@ class ProductPolicyTest extends TestCase
         $this->assertFalse(Gate::forUser($withoutStore)->allows('viewAny', Product::class));
         $this->assertFalse(Gate::allows('viewAny', Product::class));
     }
+
+    public function test_creation_requires_store_ownership_even_if_store_is_inactive(): void
+    {
+        $store = Store::factory()->inactive()->create();
+
+        $this->assertTrue(Gate::forUser($store->user)->allows('create', Product::class));
+        $this->assertFalse(Gate::forUser(User::factory()->create())->allows('create', Product::class));
+        $this->assertFalse(Gate::allows('create', Product::class));
+    }
 }

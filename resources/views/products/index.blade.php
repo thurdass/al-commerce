@@ -4,7 +4,10 @@
 
 @section('content')
     <h1>Produtos de {{ $store->name }}</h1>
-    <a href="{{ route('dashboard') }}">Voltar ao painel</a>
+    <div class="actions">
+        <a href="{{ route('products.create') }}">Cadastrar produto</a>
+        <a href="{{ route('dashboard') }}">Voltar ao painel</a>
+    </div>
 
     @forelse ($products as $product)
         <article>

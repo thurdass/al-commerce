@@ -20,6 +20,8 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/minha-loja/produtos/criar', [ProductController::class, 'create'])->name('products.create');
+    Route::post('/minha-loja/produtos', [ProductController::class, 'store'])->name('products.store');
     Route::get('/minha-loja/produtos', [ProductController::class, 'index'])->name('products.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/minha-loja/criar', [StoreController::class, 'create'])->name('stores.create');
