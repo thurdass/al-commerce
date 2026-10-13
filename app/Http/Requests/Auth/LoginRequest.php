@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\BcryptPassword;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,12 +16,12 @@ class LoginRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, array<string>> */
+    /** @return array<string, array<mixed>> */
     public function rules(): array
     {
         return [
             'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', new BcryptPassword],
         ];
     }
 

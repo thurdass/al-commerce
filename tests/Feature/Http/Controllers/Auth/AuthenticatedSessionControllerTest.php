@@ -134,4 +134,25 @@ class AuthenticatedSessionControllerTest extends TestCase
 
         $this->assertAuthenticatedAs($user);
     }
+
+    public function test_login_rejects_password_beyond_bcrypt_limit_even_if_prefix_matches(): void
+    {
+        $password = str_repeat('a', 72);
+        $user = User::factory()->create(['password' => $password]);
+
+        $this->post(route('login.store'), ['email' => $user->email, 'password' => $password.'extra'])
+            ->assertSessionHasErrors(['password' => 'A senha é muito longa. Use uma senha menor.']);
+
+        $this->assertGuest();
+    }
+
+    public function test_login_rejects_password_with_null_byte(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post(route('login.store'), ['email' => $user->email, 'password' => "password\0"])
+            ->assertSessionHasErrors(['password' => 'A senha contém caracteres inválidos.']);
+
+        $this->assertGuest();
+    }
 }

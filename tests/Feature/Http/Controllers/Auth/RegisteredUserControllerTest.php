@@ -80,6 +80,8 @@ class RegisteredUserControllerTest extends TestCase
             'missing password' => [['password' => ''], 'password', 'Informe uma senha.'],
             'short password' => [['password' => '1234567'], 'password', 'A senha deve ter pelo menos 8 caracteres.'],
             'long password' => [['password' => str_repeat('a', 73)], 'password', 'A senha deve ter no máximo 72 caracteres.'],
+            'long multibyte password' => [['password' => str_repeat('é', 40), 'password_confirmation' => str_repeat('é', 40)], 'password', 'A senha é muito longa. Use uma senha menor.'],
+            'null byte in password' => [['password' => "senha\0secreta", 'password_confirmation' => "senha\0secreta"], 'password', 'A senha contém caracteres inválidos.'],
             'confirmation mismatch' => [['password_confirmation' => 'different'], 'password', 'A confirmação da senha não confere.'],
         ];
     }
@@ -101,6 +103,19 @@ class RegisteredUserControllerTest extends TestCase
 
         $this->withSession(['_old_input' => ['name' => $name]])->get(route('register'))
             ->assertOk()->assertSee($name)->assertDontSee($name, false);
+    }
+
+    public function test_registration_accepts_multibyte_password_within_bcrypt_limit(): void
+    {
+        $password = str_repeat('é', 36);
+
+        $this->post(route('register.store'), $this->payload([
+            'password' => $password, 'password_confirmation' => $password,
+        ]))->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
+
+        $user = User::query()->sole();
+        $this->assertTrue(Hash::check($password, $user->password));
+        $this->assertAuthenticatedAs($user);
     }
 
     /** @return array<string, mixed> */
