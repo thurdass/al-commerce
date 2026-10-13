@@ -37,7 +37,7 @@ class ProductController extends Controller
 
         return view('products.index', [
             'store' => $store,
-            'products' => $store->products()->with('category')->orderByDesc('id')->paginate(15),
+            'products' => $store->products()->with(['category', 'coverImage'])->orderByDesc('id')->paginate(15),
         ]);
     }
 
@@ -46,7 +46,7 @@ class ProductController extends Controller
         Gate::authorize('update', $product);
 
         return view('products.edit', [
-            'product' => $product,
+            'product' => $product->load('images'),
             'categories' => Category::query()->orderBy('name')->get(),
         ]);
     }

@@ -14,4 +14,5 @@
             <a href="{{ route('products.index') }}">Voltar aos produtos</a>
         </div>
     </form>
+    @include('products.partials.images')
 @endsection

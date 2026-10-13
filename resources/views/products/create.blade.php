@@ -5,6 +5,7 @@
 @section('content')
     <h1>Cadastrar produto</h1>
     <p>O slug será gerado automaticamente e permanecerá o mesmo após a criação.</p>
+    <p>Após cadastrar, abra a edição do produto para adicionar imagens.</p>
     <form method="POST" action="{{ route('products.store') }}">
         @csrf
         @include('products.partials.form', ['product' => null])

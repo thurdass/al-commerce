@@ -12,6 +12,9 @@
     @forelse ($products as $product)
         <article>
             <h2>{{ $product->name }}</h2>
+            @if ($product->coverImage)
+                <img src="{{ route('products.images.show', [$product, $product->coverImage]) }}" alt="Capa de {{ $product->name }}" width="120" loading="lazy">
+            @endif
             <dl>
                 <dt>Categoria</dt>
                 <dd>{{ $product->category?->name ?? 'Sem categoria' }}</dd>
