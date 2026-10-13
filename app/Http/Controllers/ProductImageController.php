@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\DeleteProductImage;
+use App\Actions\SetProductCover;
 use App\Actions\UploadProductImages;
+use App\Http\Requests\DeleteProductImageRequest;
 use App\Http\Requests\UploadProductImagesRequest;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -30,5 +33,20 @@ class ProductImageController extends Controller
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    public function updateCover(Product $product, ProductImage $image, SetProductCover $setCover): RedirectResponse
+    {
+        Gate::authorize('update', $product);
+        $setCover->handle($product, $image);
+
+        return to_route('products.edit', $product)->with('status', 'Capa atualizada com sucesso.');
+    }
+
+    public function destroy(DeleteProductImageRequest $request, Product $product, ProductImage $image, DeleteProductImage $deleteImage): RedirectResponse
+    {
+        $deleteImage->handle($product, $image);
+
+        return to_route('products.edit', $product)->with('status', 'Imagem removida com sucesso.');
     }
 }

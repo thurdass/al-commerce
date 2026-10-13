@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToWriteFile;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -228,6 +229,173 @@ class ProductImageControllerTest extends TestCase
         $this->assertDatabaseCount('product_images', 0);
         $disk->assertDirectoryEmpty('/');
         Exceptions::assertReported(UnableToWriteFile::class);
+    }
+
+    public function test_owner_can_change_cover_repeatedly_without_altering_product_slug(): void
+    {
+        $product = Product::factory()->create();
+        $slug = $product->slug;
+        $images = ProductImage::factory()->count(3)->for($product)->sequence(['position' => 1], ['position' => 2], ['position' => 3])->create();
+        $cover = $images->last();
+
+        $this->actingAs($product->store->user)->patch(route('products.images.cover', [$product, $cover]), ['position' => 999])
+            ->assertRedirectToRoute('products.edit', $product)->assertSessionHasNoErrors();
+
+        $this->assertSame($cover->id, $product->fresh()->coverImage->id);
+        $this->assertSame([$cover->id, $images[0]->id, $images[1]->id], $product->images()->pluck('id')->all());
+        $this->assertSame([1, 2, 3], $product->images()->pluck('position')->all());
+        $this->assertSame($slug, $product->fresh()->slug);
+        $this->get(route('products.index'))->assertOk()->assertSee(route('products.images.show', [$product, $cover]));
+
+        $this->patch(route('products.images.cover', [$product, $cover]))->assertRedirectToRoute('products.edit', $product);
+
+        $this->assertSame([$cover->id, $images[0]->id, $images[1]->id], $product->images()->pluck('id')->all());
+    }
+
+    public function test_owner_can_remove_cover_and_next_image_becomes_cover(): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $product = Product::factory()->create();
+        $images = ProductImage::factory()->count(2)->for($product)->sequence(['position' => 1], ['position' => 2])->create();
+        foreach ($images as $image) {
+            Storage::disk(ProductImage::DISK)->put($image->image_path, 'bytes');
+        }
+
+        $this->actingAs($product->store->user)->delete(route('products.images.destroy', [$product, $images[0]]), ['confirmed' => '1'])
+            ->assertRedirectToRoute('products.edit', $product)->assertSessionHasNoErrors();
+
+        $this->assertModelMissing($images[0]);
+        $this->assertSame($images[1]->id, $product->fresh()->coverImage->id);
+        $this->assertModelExists($product);
+        Storage::disk(ProductImage::DISK)->assertMissing($images[0]->image_path);
+        Storage::disk(ProductImage::DISK)->assertExists($images[1]->image_path);
+    }
+
+    public function test_removing_secondary_image_preserves_cover_and_other_products_files(): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $cover = ProductImage::factory()->create(['position' => 1]);
+        $secondary = ProductImage::factory()->for($cover->product)->create(['position' => 2]);
+        $other = ProductImage::factory()->create();
+        foreach ([$cover, $secondary, $other] as $image) {
+            Storage::disk(ProductImage::DISK)->put($image->image_path, 'bytes');
+        }
+
+        $this->actingAs($cover->product->store->user)->delete(route('products.images.destroy', [$cover->product, $secondary]), [
+            'confirmed' => '1', 'image_path' => $other->image_path, 'product_id' => $other->product_id,
+        ])->assertRedirectToRoute('products.edit', $cover->product);
+
+        $this->assertModelMissing($secondary);
+        $this->assertSame($cover->id, $cover->product->fresh()->coverImage->id);
+        $this->assertModelExists($other);
+        Storage::disk(ProductImage::DISK)->assertMissing($secondary->image_path);
+        Storage::disk(ProductImage::DISK)->assertExists([$cover->image_path, $other->image_path]);
+    }
+
+    public function test_removing_last_image_allows_uploading_again(): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $image = ProductImage::factory()->create();
+        $product = $image->product;
+        Storage::disk(ProductImage::DISK)->put($image->image_path, 'bytes');
+
+        $this->actingAs($product->store->user)->delete(route('products.images.destroy', [$product, $image]), ['confirmed' => '1'])
+            ->assertRedirectToRoute('products.edit', $product);
+
+        $this->assertNull($product->fresh()->coverImage);
+        Storage::disk(ProductImage::DISK)->assertMissing($image->image_path);
+        $this->get(route('products.edit', $product))->assertOk()->assertSee('Nenhuma imagem cadastrada.')
+            ->assertSee('name="images[]"', false);
+        $this->post(route('products.images.store', $product), ['images' => [$this->image()]])
+            ->assertRedirectToRoute('products.edit', $product);
+        $this->assertNotNull($product->fresh()->coverImage);
+        Storage::disk(ProductImage::DISK)->assertExists($product->images()->sole()->image_path);
+    }
+
+    public function test_image_deletion_requires_confirmation_and_can_remove_a_missing_file_record(): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $image = ProductImage::factory()->create();
+
+        $this->actingAs($image->product->store->user)->delete(route('products.images.destroy', [$image->product, $image]))
+            ->assertSessionHasErrors(['confirmed' => 'Confirme a remoção da imagem.']);
+
+        $this->assertModelExists($image);
+        $this->delete(route('products.images.destroy', [$image->product, $image]), ['confirmed' => '0'])
+            ->assertSessionHasErrors('confirmed');
+        $this->assertModelExists($image);
+        $this->delete(route('products.images.destroy', [$image->product, $image]), ['confirmed' => '1'])
+            ->assertRedirectToRoute('products.edit', $image->product);
+
+        $this->assertModelMissing($image);
+        Storage::disk(ProductImage::DISK)->assertMissing($image->image_path);
+    }
+
+    #[DataProvider('imageMutationEndpoints')]
+    public function test_guests_cannot_change_cover_or_remove_images(string $method, string $route): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $image = ProductImage::factory()->create();
+        Storage::disk(ProductImage::DISK)->put($image->image_path, 'bytes');
+
+        $this->$method(route($route, [$image->product, $image]), ['confirmed' => '1'])->assertRedirectToRoute('login');
+
+        $this->assertModelExists($image);
+        $this->assertSame(1, $image->fresh()->position);
+        Storage::disk(ProductImage::DISK)->assertExists($image->image_path);
+    }
+
+    #[DataProvider('imageMutationEndpoints')]
+    public function test_other_merchant_cannot_change_cover_or_remove_images(string $method, string $route): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $image = ProductImage::factory()->create(['position' => 2]);
+        $other = Store::factory()->create();
+        Storage::disk(ProductImage::DISK)->put($image->image_path, 'bytes');
+
+        $this->actingAs($other->user)->$method(route($route, [$image->product, $image]), ['confirmed' => '1'])->assertNotFound();
+
+        $this->assertModelExists($image);
+        $this->assertSame(2, $image->fresh()->position);
+        Storage::disk(ProductImage::DISK)->assertExists($image->image_path);
+    }
+
+    #[DataProvider('imageMutationEndpoints')]
+    public function test_cannot_manage_image_under_a_different_product_of_the_same_store(string $method, string $route): void
+    {
+        Storage::fake(ProductImage::DISK);
+        $image = ProductImage::factory()->create(['position' => 2]);
+        $product = Product::factory()->for($image->product->store)->create();
+        Storage::disk(ProductImage::DISK)->put($image->image_path, 'bytes');
+
+        $this->actingAs($product->store->user)->$method(route($route, [$product, $image]), ['confirmed' => '1'])->assertNotFound();
+
+        $this->assertModelExists($image);
+        $this->assertSame(2, $image->fresh()->position);
+        Storage::disk(ProductImage::DISK)->assertExists($image->image_path);
+    }
+
+    public static function imageMutationEndpoints(): array
+    {
+        return ['cover' => ['patch', 'products.images.cover'], 'delete' => ['delete', 'products.images.destroy']];
+    }
+
+    public function test_failed_file_deletion_preserves_image_record_and_returns_safe_error(): void
+    {
+        $disk = Storage::fake(ProductImage::DISK);
+        $image = ProductImage::factory()->create();
+        $disk->put($image->image_path, 'bytes');
+        $failingDisk = Mockery::mock($disk)->makePartial();
+        $failingDisk->shouldReceive('delete')->once()->andThrow(UnableToDeleteFile::atLocation('/private/path'));
+        Storage::set(ProductImage::DISK, $failingDisk);
+        Exceptions::fake();
+
+        $this->actingAs($image->product->store->user)->delete(route('products.images.destroy', [$image->product, $image]), ['confirmed' => '1'])
+            ->assertSessionHasErrors(['images' => 'Não foi possível remover a imagem. Tente novamente.']);
+
+        $this->assertModelExists($image);
+        $disk->assertExists($image->image_path);
+        Exceptions::assertReported(UnableToDeleteFile::class);
     }
 
     private function image(string $extension = 'png'): UploadedFile

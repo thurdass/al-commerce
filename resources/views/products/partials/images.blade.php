@@ -5,6 +5,22 @@
         <figure>
             <img src="{{ route('products.images.show', [$product, $image]) }}" alt="Imagem {{ $loop->iteration }} de {{ $product->name }}" width="180" loading="lazy">
             <figcaption>{{ $loop->first ? 'Capa' : 'Imagem '.$loop->iteration }}</figcaption>
+            @if (! $loop->first)
+                <form method="POST" action="{{ route('products.images.cover', [$product, $image]) }}">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit">Definir como capa</button>
+                </form>
+            @endif
+            <form method="POST" action="{{ route('products.images.destroy', [$product, $image]) }}">
+                @csrf
+                @method('DELETE')
+                <label for="remove-image-{{ $image->id }}">
+                    <input id="remove-image-{{ $image->id }}" type="checkbox" name="confirmed" value="1" required>
+                    Confirmo a remoção desta imagem.
+                </label>
+                <button type="submit">Remover imagem</button>
+            </form>
         </figure>
     @empty
         <p>Nenhuma imagem cadastrada.</p>

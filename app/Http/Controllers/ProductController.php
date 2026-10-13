@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateProduct;
+use App\Actions\DeleteProduct;
 use App\Http\Requests\CreateProductRequest;
 use App\Http\Requests\DeleteProductRequest;
 use App\Http\Requests\UpdateProductRequest;
@@ -72,9 +73,9 @@ class ProductController extends Controller
         return view('products.delete', ['product' => $product]);
     }
 
-    public function destroy(DeleteProductRequest $request, Product $product): RedirectResponse
+    public function destroy(DeleteProductRequest $request, Product $product, DeleteProduct $deleteProduct): RedirectResponse
     {
-        $product->delete();
+        $deleteProduct->handle($product);
 
         return to_route('products.index')->with('status', 'Produto excluído com sucesso.');
     }

@@ -26,6 +26,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/minha-loja/produtos', [ProductController::class, 'index'])->name('products.index');
     Route::post('/minha-loja/produtos/{product}/imagens', [ProductImageController::class, 'store'])->whereNumber('product')->name('products.images.store');
     Route::get('/minha-loja/produtos/{product}/imagens/{image}', [ProductImageController::class, 'show'])->whereNumber(['product', 'image'])->scopeBindings()->name('products.images.show');
+    Route::patch('/minha-loja/produtos/{product}/imagens/{image}/capa', [ProductImageController::class, 'updateCover'])->whereNumber(['product', 'image'])->scopeBindings()->name('products.images.cover');
+    Route::delete('/minha-loja/produtos/{product}/imagens/{image}', [ProductImageController::class, 'destroy'])->whereNumber(['product', 'image'])->scopeBindings()->name('products.images.destroy');
     Route::get('/minha-loja/produtos/{product}/editar', [ProductController::class, 'edit'])->whereNumber('product')->name('products.edit');
     Route::match(['put', 'patch'], '/minha-loja/produtos/{product}', [ProductController::class, 'update'])->whereNumber('product')->name('products.update');
     Route::patch('/minha-loja/produtos/{product}/status', [ProductController::class, 'updateStatus'])->whereNumber('product')->name('products.status');
