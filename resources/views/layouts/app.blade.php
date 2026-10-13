@@ -26,6 +26,7 @@
         <a href="{{ route('home') }}">AL Commerce</a>
         <nav aria-label="Navegação principal">
             @auth
+                <a href="{{ route('dashboard') }}">Meu painel</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit">Sair</button>

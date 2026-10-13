@@ -12,7 +12,7 @@
         @include('stores.partials.form', ['store' => $store])
         <div class="actions">
             <button type="submit">Salvar alterações</button>
-            <a href="{{ route('home') }}">Voltar</a>
+            <a href="{{ route('dashboard') }}">Voltar</a>
         </div>
     </form>
 @endsection

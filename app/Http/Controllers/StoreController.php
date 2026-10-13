@@ -23,7 +23,7 @@ class StoreController extends Controller
     {
         $saveStore->handle($request->user()->store()->make(), $request->validated());
 
-        return to_route('home')->with('status', 'Loja criada com sucesso.');
+        return to_route('dashboard')->with('status', 'Loja criada com sucesso.');
     }
 
     public function edit(Store $store): View

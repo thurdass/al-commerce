@@ -6,13 +6,7 @@
     <h1>AL Commerce</h1>
     <p>Encontre produtos disponíveis no comércio local e fale diretamente com a loja.</p>
     @auth
-        <p>Olá, {{ auth()->user()->name }}. Você está conectado.</p>
-        @can('create', App\Models\Store::class)
-            <a href="{{ route('stores.create') }}">Criar minha loja</a>
-        @endcan
-        @if ($store)
-            <a href="{{ route('stores.edit', $store) }}">Editar minha loja</a>
-        @endif
+        <a href="{{ route('dashboard') }}">Acessar meu painel</a>
     @else
         <p>É lojista? <a href="{{ route('register') }}">Crie sua conta</a> ou <a href="{{ route('login') }}">entre para continuar</a>.</p>
     @endauth

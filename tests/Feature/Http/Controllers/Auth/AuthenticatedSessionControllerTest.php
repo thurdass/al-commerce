@@ -26,7 +26,7 @@ class AuthenticatedSessionControllerTest extends TestCase
         $this->post(route('login.store'), [
             'email' => ' MARIA@EXAMPLE.COM ',
             'password' => 'password',
-        ])->assertRedirectToRoute('home')->assertSessionHasNoErrors();
+        ])->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
 
         $this->assertAuthenticatedAs($user);
         $this->assertNotSame($sessionId, session()->getId());
@@ -83,7 +83,7 @@ class AuthenticatedSessionControllerTest extends TestCase
 
         $this->travel(61)->seconds();
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
-            ->assertRedirectToRoute('home')->assertSessionHasNoErrors();
+            ->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
         $this->assertAuthenticatedAs($user);
     }
 
@@ -94,13 +94,13 @@ class AuthenticatedSessionControllerTest extends TestCase
             $this->post(route('login.store'), ['email' => $user->email, 'password' => 'wrong']);
         }
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
-            ->assertRedirectToRoute('home');
+            ->assertRedirectToRoute('dashboard');
         $this->post(route('logout'))->assertRedirectToRoute('login');
 
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'wrong'])
             ->assertSessionHasErrors(['email' => 'E-mail ou senha inválidos.']);
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
-            ->assertRedirectToRoute('home')->assertSessionHasNoErrors();
+            ->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
         $this->assertAuthenticatedAs($user);
     }
 

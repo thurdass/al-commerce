@@ -30,7 +30,7 @@ class StoreControllerTest extends TestCase
             'category' => 'Injected category',
             'logo' => '/injected.png',
             'state' => 'ba',
-        ]))->assertRedirectToRoute('home')->assertSessionHasNoErrors();
+        ]))->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
 
         $store = Store::query()->sole();
         $this->assertSame($owner->id, $store->user_id);
@@ -54,7 +54,7 @@ class StoreControllerTest extends TestCase
     public function test_generates_url_safe_slug_from_store_name(string $name, string $expected): void
     {
         $this->actingAs(User::factory()->create())->post(route('stores.store'), $this->payload(['name' => $name]))
-            ->assertRedirectToRoute('home');
+            ->assertRedirectToRoute('dashboard');
 
         $this->assertSame($expected, Store::query()->sole()->slug);
     }
@@ -65,7 +65,7 @@ class StoreControllerTest extends TestCase
         Store::factory()->create(['slug' => 'tech-bahia-2']);
         $user = User::factory()->create();
 
-        $this->actingAs($user)->post(route('stores.store'), $this->payload())->assertRedirectToRoute('home');
+        $this->actingAs($user)->post(route('stores.store'), $this->payload())->assertRedirectToRoute('dashboard');
 
         $this->assertSame('tech-bahia-3', $user->fresh()->store->slug);
     }
@@ -76,7 +76,7 @@ class StoreControllerTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post(route('stores.store'), $this->payload(['name' => str_repeat('a', 255)]))
-            ->assertRedirectToRoute('home');
+            ->assertRedirectToRoute('dashboard');
 
         $this->assertSame(str_repeat('a', 240).'-2', $user->fresh()->store->slug);
     }
@@ -104,7 +104,7 @@ class StoreControllerTest extends TestCase
     {
         $this->actingAs(User::factory()->create())->post(route('stores.store'), $this->payload([
             'active' => '0', 'address' => 'Rua Bahia, 10',
-        ]))->assertRedirectToRoute('home');
+        ]))->assertRedirectToRoute('dashboard');
 
         $store = Store::query()->sole();
         $this->assertFalse($store->active);

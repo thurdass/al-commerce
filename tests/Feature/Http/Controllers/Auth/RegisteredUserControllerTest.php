@@ -29,7 +29,7 @@ class RegisteredUserControllerTest extends TestCase
             'id' => 999,
         ]));
 
-        $response->assertRedirectToRoute('home')->assertSessionHasNoErrors();
+        $response->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
         $user = User::query()->sole();
         $this->assertSame('maria@example.com', $user->email);
         $this->assertSame('Maria Santos', $user->name);
