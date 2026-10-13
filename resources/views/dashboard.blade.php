@@ -21,6 +21,7 @@
         </dl>
         <div class="actions">
             <a href="{{ route('stores.edit', $store) }}">Editar loja</a>
+            <a href="{{ route('products.index') }}">Gerenciar produtos</a>
         </div>
     @else
         <p>Você ainda não possui uma loja.</p>

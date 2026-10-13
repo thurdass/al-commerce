@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/minha-loja/produtos', [ProductController::class, 'index'])->name('products.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/minha-loja/criar', [StoreController::class, 'create'])->name('stores.create');
     Route::post('/minha-loja', [StoreController::class, 'store'])->name('stores.store');
