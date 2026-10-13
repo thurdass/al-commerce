@@ -24,6 +24,7 @@
             </dl>
             <div class="actions">
                 <a href="{{ route('products.edit', $product) }}">Editar</a>
+                <a href="{{ route('products.delete', $product) }}">Excluir</a>
                 <form method="POST" action="{{ route('products.status', $product) }}">
                     @csrf
                     @method('PATCH')

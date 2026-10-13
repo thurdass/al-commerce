@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateProduct;
 use App\Http\Requests\CreateProductRequest;
+use App\Http\Requests\DeleteProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Requests\UpdateProductStatusRequest;
 use App\Models\Product;
@@ -58,5 +59,19 @@ class ProductController extends Controller
         $product->update($request->validated());
 
         return to_route('products.index')->with('status', $product->active ? 'Produto ativado.' : 'Produto desativado.');
+    }
+
+    public function confirmDelete(Product $product): View
+    {
+        Gate::authorize('delete', $product);
+
+        return view('products.delete', ['product' => $product]);
+    }
+
+    public function destroy(DeleteProductRequest $request, Product $product): RedirectResponse
+    {
+        $product->delete();
+
+        return to_route('products.index')->with('status', 'Produto excluído com sucesso.');
     }
 }

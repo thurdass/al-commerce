@@ -392,4 +392,107 @@ class ProductControllerTest extends TestCase
             'active' => '1',
         ], $changes);
     }
+
+    public function test_confirmation_page_escapes_name_and_does_not_delete_product(): void
+    {
+        $product = Product::factory()->create(['name' => '<script>product()</script>']);
+
+        $this->actingAs($product->store->user)->get(route('products.delete', $product))->assertOk()
+            ->assertViewIs('products.delete')->assertSee($product->name)->assertDontSee($product->name, false)
+            ->assertSee('name="_token"', false)->assertSee('name="_method" value="DELETE"', false)
+            ->assertSee('name="confirmed"', false)->assertSee('Cancelar')->assertSee(route('products.index'));
+
+        $this->assertModelExists($product);
+    }
+
+    public function test_owner_can_delete_confirmed_product_without_deleting_other_records(): void
+    {
+        $store = Store::factory()->inactive()->create();
+        $product = Product::factory()->for($store)->inactive()->create();
+        $sibling = Product::factory()->for($store)->create();
+        $other = Product::factory()->create();
+
+        $this->actingAs($store->user)->delete(route('products.destroy', $product), [
+            'confirmed' => '1', 'id' => $other->id, 'store_id' => $other->store_id,
+        ])->assertRedirectToRoute('products.index')->assertSessionHas('status', 'Produto excluído com sucesso.');
+
+        $this->assertModelMissing($product);
+        $this->assertModelExists($sibling);
+        $this->assertModelExists($other);
+        $this->assertModelExists($store);
+        $this->assertModelExists($store->user);
+        $this->get(route('dashboard'))->assertOk()->assertViewHas('store', fn (Store $store): bool => $store->products_count === 1);
+        $this->get(route('products.edit', $product))->assertNotFound();
+    }
+
+    #[DataProvider('unconfirmedDeletion')]
+    public function test_unconfirmed_deletion_preserves_product(array $payload): void
+    {
+        $product = Product::factory()->create();
+
+        $this->actingAs($product->store->user)->from(route('products.delete', $product))
+            ->delete(route('products.destroy', $product), $payload)
+            ->assertRedirectToRoute('products.delete', $product)
+            ->assertSessionHasErrors(['confirmed' => 'Confirme a exclusão do produto.']);
+
+        $this->assertModelExists($product);
+    }
+
+    public static function unconfirmedDeletion(): array
+    {
+        return [
+            'missing' => [[]],
+            'declined' => [['confirmed' => '0']],
+            'invalid' => [['confirmed' => 'anything']],
+            'array' => [['confirmed' => ['1']]],
+        ];
+    }
+
+    #[DataProvider('deletionEndpoints')]
+    public function test_guest_cannot_access_product_deletion(string $method, string $route): void
+    {
+        $product = Product::factory()->create();
+
+        $this->{$method}(route($route, $product), ['confirmed' => '1'])->assertRedirectToRoute('login');
+
+        $this->assertModelExists($product);
+    }
+
+    #[DataProvider('deletionEndpoints')]
+    public function test_other_merchant_cannot_access_product_deletion(string $method, string $route): void
+    {
+        $product = Product::factory()->create();
+        $other = Store::factory()->create();
+
+        $this->actingAs($other->user)->{$method}(route($route, $product), ['confirmed' => '1'])->assertNotFound();
+
+        $this->assertModelExists($product);
+    }
+
+    #[DataProvider('deletionEndpoints')]
+    public function test_missing_product_cannot_be_deleted(string $method, string $route): void
+    {
+        $store = Store::factory()->create();
+
+        $this->actingAs($store->user)->{$method}(route($route, 999), ['confirmed' => '1'])->assertNotFound();
+    }
+
+    public static function deletionEndpoints(): array
+    {
+        return [
+            'confirmation' => ['get', 'products.delete'],
+            'deletion' => ['delete', 'products.destroy'],
+        ];
+    }
+
+    public function test_list_links_to_edit_and_delete_and_submits_explicit_status(): void
+    {
+        $product = Product::factory()->create();
+
+        $this->actingAs($product->store->user)->get(route('products.index'))->assertOk()
+            ->assertSee(route('products.edit', $product))->assertSee(route('products.delete', $product))
+            ->assertSee(route('products.status', $product))
+            ->assertSee('name="_method" value="PATCH"', false)->assertSee('name="active" value="0"', false)
+            ->assertSee('Desativar');
+    }
 }

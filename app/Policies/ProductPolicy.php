@@ -26,4 +26,9 @@ class ProductPolicy
             ? Response::allow()
             : Response::denyAsNotFound();
     }
+
+    public function delete(User $user, Product $product): Response
+    {
+        return $this->update($user, $product);
+    }
 }
