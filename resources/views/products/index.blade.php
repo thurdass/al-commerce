@@ -13,6 +13,8 @@
         <article>
             <h2>{{ $product->name }}</h2>
             <dl>
+                <dt>Categoria</dt>
+                <dd>{{ $product->category?->name ?? 'Sem categoria' }}</dd>
                 <dt>Preço</dt>
                 <dd>R$ {{ number_format((float) $product->price, 2, ',', '.') }}</dd>
                 <dt>Estoque</dt>

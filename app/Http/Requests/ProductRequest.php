@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Category;
 use App\ProductAvailabilityStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,6 +13,7 @@ abstract class ProductRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'category_id' => ['bail', 'nullable', 'integer', Rule::exists(Category::class, 'id')],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
             'price' => ['bail', 'required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
@@ -25,6 +27,8 @@ abstract class ProductRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'category_id.integer' => 'Selecione uma categoria válida.',
+            'category_id.exists' => 'Selecione uma categoria válida.',
             'name.required' => 'Informe o nome do produto.',
             'name.string' => 'Informe um nome válido.',
             'name.max' => 'O nome deve ter no máximo 255 caracteres.',

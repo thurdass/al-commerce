@@ -7,6 +7,7 @@ use App\Http\Requests\CreateProductRequest;
 use App\Http\Requests\DeleteProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Requests\UpdateProductStatusRequest;
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class ProductController extends Controller
     {
         Gate::authorize('create', Product::class);
 
-        return view('products.create');
+        return view('products.create', ['categories' => Category::query()->orderBy('name')->get()]);
     }
 
     public function store(CreateProductRequest $request, CreateProduct $createProduct): RedirectResponse
@@ -36,7 +37,7 @@ class ProductController extends Controller
 
         return view('products.index', [
             'store' => $store,
-            'products' => $store->products()->orderByDesc('id')->paginate(15),
+            'products' => $store->products()->with('category')->orderByDesc('id')->paginate(15),
         ]);
     }
 
@@ -44,7 +45,10 @@ class ProductController extends Controller
     {
         Gate::authorize('update', $product);
 
-        return view('products.edit', ['product' => $product]);
+        return view('products.edit', [
+            'product' => $product,
+            'categories' => Category::query()->orderBy('name')->get(),
+        ]);
     }
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse

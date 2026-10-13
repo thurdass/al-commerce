@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
@@ -79,7 +80,7 @@ class ProductControllerTest extends TestCase
 
         $this->post(route('products.store'), $this->payload([
             'store_id' => $other->id, 'user_id' => $other->user_id, 'slug' => 'injected',
-            'category_id' => 1, 'id' => 999,
+            'category_name' => 'Injected', 'id' => 999,
         ]))->assertRedirectToRoute('products.index')->assertSessionHasNoErrors();
 
         $product = Product::query()->sole();
@@ -494,5 +495,101 @@ class ProductControllerTest extends TestCase
             ->assertSee(route('products.status', $product))
             ->assertSee('name="_method" value="PATCH"', false)->assertSee('name="active" value="0"', false)
             ->assertSee('Desativar');
+    }
+
+    public function test_owner_can_create_product_with_shared_category(): void
+    {
+        $store = Store::factory()->create();
+        $category = Category::factory()->create();
+
+        $this->actingAs($store->user)->post(route('products.store'), $this->payload(['category_id' => $category->id]))
+            ->assertRedirectToRoute('products.index')->assertSessionHasNoErrors();
+
+        $this->assertSame($category->id, $store->products()->sole()->category_id);
+        $this->get(route('products.index'))->assertOk()->assertSee($category->name);
+    }
+
+    public function test_owner_can_change_and_clear_category_without_changing_slug(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->for(Category::factory())->create();
+        $slug = $product->slug;
+
+        $this->actingAs($product->store->user)->put(route('products.update', $product), $this->payload(['category_id' => $category->id]))
+            ->assertRedirectToRoute('products.edit', $product)->assertSessionHasNoErrors();
+
+        $this->assertSame($category->id, $product->fresh()->category_id);
+        $this->assertSame($slug, $product->fresh()->slug);
+        $this->get(route('products.edit', $product))->assertOk()
+            ->assertSee('value="'.$category->id.'" selected', false);
+
+        $this->put(route('products.update', $product), $this->payload(['category_id' => '']))
+            ->assertRedirectToRoute('products.edit', $product)->assertSessionHasNoErrors();
+
+        $this->assertNull($product->fresh()->category_id);
+    }
+
+    public function test_omitted_category_preserves_existing_association(): void
+    {
+        $product = Product::factory()->for(Category::factory())->create();
+        $categoryId = $product->category_id;
+
+        $this->actingAs($product->store->user)->put(route('products.update', $product), $this->payload())
+            ->assertRedirectToRoute('products.edit', $product);
+
+        $this->assertSame($categoryId, $product->fresh()->category_id);
+    }
+
+    #[DataProvider('invalidCategories')]
+    public function test_invalid_category_does_not_create_product(mixed $categoryId): void
+    {
+        $store = Store::factory()->create();
+
+        $this->actingAs($store->user)->post(route('products.store'), $this->payload(['category_id' => $categoryId]))
+            ->assertSessionHasErrors(['category_id' => 'Selecione uma categoria válida.']);
+
+        $this->assertDatabaseCount('products', 0);
+    }
+
+    public static function invalidCategories(): array
+    {
+        return ['missing record' => [999], 'not an integer' => ['invalid']];
+    }
+
+    public function test_invalid_category_update_preserves_existing_category(): void
+    {
+        $product = Product::factory()->for(Category::factory())->create();
+        $categoryId = $product->category_id;
+
+        $this->actingAs($product->store->user)->put(route('products.update', $product), $this->payload(['category_id' => 999]))
+            ->assertSessionHasErrors('category_id');
+
+        $this->assertSame($categoryId, $product->fresh()->category_id);
+    }
+
+    public function test_merchant_cannot_change_category_of_another_stores_product(): void
+    {
+        $product = Product::factory()->for(Category::factory())->create();
+        $category = Category::factory()->create();
+        $originalCategory = $product->category_id;
+        $otherStore = Store::factory()->create();
+
+        $this->actingAs($otherStore->user)->put(route('products.update', $product), $this->payload(['category_id' => $category->id]))
+            ->assertNotFound();
+
+        $this->assertSame($originalCategory, $product->fresh()->category_id);
+    }
+
+    public function test_category_labels_are_escaped_in_forms_and_list(): void
+    {
+        $category = Category::factory()->create(['name' => '<script>category()</script>']);
+        $product = Product::factory()->for($category)->create();
+
+        $this->actingAs($product->store->user)->get(route('products.create'))->assertOk()
+            ->assertSee($category->name)->assertDontSee($category->name, false);
+        $this->get(route('products.edit', $product))->assertOk()
+            ->assertSee($category->name)->assertDontSee($category->name, false);
+        $this->get(route('products.index'))->assertOk()
+            ->assertSee($category->name)->assertDontSee($category->name, false);
     }
 }

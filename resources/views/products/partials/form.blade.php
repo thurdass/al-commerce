@@ -1,3 +1,11 @@
+<label for="category_id">Categoria (opcional)</label>
+<select id="category_id" name="category_id">
+    <option value="">Sem categoria</option>
+    @foreach ($categories as $category)
+        <option value="{{ $category->id }}" @selected((string) old('category_id', $product?->category_id) === (string) $category->id)>{{ $category->name }}</option>
+    @endforeach
+</select>
+
 <label for="name">Nome do produto</label>
 <input id="name" name="name" value="{{ old('name', $product?->name) }}" maxlength="255" required autofocus>
 
