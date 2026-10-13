@@ -8,7 +8,7 @@ Este README é provisório e acompanha o desenvolvimento do projeto em etapas.
 
 ## Estado atual
 
-A primeira etapa implementa a estrutura inicial de dados:
+As Etapas 1 e 2 estão implementadas. A base de dados inclui:
 
 - Models `User`, `Store` e `Product`, com relacionamentos Eloquent.
 - Migrations com chaves estrangeiras e restrições de unicidade.
@@ -16,7 +16,14 @@ A primeira etapa implementa a estrutura inicial de dados:
 - Factories e testes de persistência, relacionamentos e integridade dos dados.
 - SQLite para desenvolvimento local e banco em memória para os testes.
 
-Ainda não existem telas do AL Commerce, endpoints de cadastro ou páginas públicas. A rota inicial exibe a página padrão do Laravel. Autenticação, geração automática de slugs, categorias de produtos, imagens múltiplas, métricas e integração com WhatsApp serão desenvolvidas em etapas posteriores.
+A área do lojista já permite:
+
+- Criar uma conta, entrar e sair, com autenticação por sessão.
+- Criar uma única loja, com slug gerado automaticamente a partir do nome.
+- Editar os dados da própria loja e ativá-la ou desativá-la.
+- Consultar um dashboard com nome, slug, status, cidade e quantidade de produtos existentes.
+
+As páginas usam Blade e CSS básico, sem dependências novas de frontend. O gerenciamento de produtos, categorias, imagens, métricas, integração com WhatsApp e páginas públicas continuam reservados para etapas posteriores.
 
 ## Escopo previsto para o MVP
 
@@ -91,6 +98,42 @@ php artisan serve
 
 O comando informa o endereço local de acesso. A etapa atual não exige instalação ou compilação de dependências de frontend.
 
+Para atualizar uma instalação da Etapa 1, aplique as migrations com `php artisan migrate`. A nova migration torna `stores.category` opcional e preserva os registros, as chaves estrangeiras e os índices existentes.
+
+## Fluxo do lojista
+
+1. Acesse `/cadastro` e crie sua conta. O cadastro já inicia a sessão e redireciona para o dashboard.
+2. No dashboard, use **Criar minha loja** para cadastrar nome, descrição, WhatsApp, cidade, UF, endereço opcional e status.
+3. Após criar a loja, use **Editar loja** para alterar seus dados ou ativá-la/desativá-la.
+4. Use **Sair** para encerrar a sessão.
+
+O campo WhatsApp armazena apenas o número, com 10 a 15 dígitos, incluindo código do país e DDD. Ainda não há botão de contato ou integração.
+
+### Rotas disponíveis
+
+| Método | Caminho | Acesso / finalidade |
+| --- | --- | --- |
+| GET | `/` | Entrada da aplicação, com links de acesso. |
+| GET / POST | `/cadastro` | Formulário e cadastro de visitantes. |
+| GET / POST | `/login` | Formulário e autenticação de visitantes. |
+| POST | `/logout` | Encerramento da sessão autenticada. |
+| GET | `/dashboard` | Dashboard do lojista autenticado. |
+| GET | `/minha-loja/criar` | Formulário para usuário autenticado sem loja. |
+| POST | `/minha-loja` | Criação da loja do usuário autenticado. |
+| GET | `/minha-loja/{store}/editar` | Edição acessível apenas ao proprietário. |
+| PUT / PATCH | `/minha-loja/{store}` | Atualização acessível apenas ao proprietário. |
+
+`{store}` é o ID interno da loja. Essas rotas pertencem à área autenticada e não são as URLs públicas planejadas para o catálogo.
+
+### Autenticação e autorização
+
+- A autenticação usa o guard `web` do Laravel, com renovação da sessão ao entrar e invalidação ao sair.
+- As senhas são armazenadas como hash. O cadastro exige confirmação, pelo menos 8 caracteres e respeito ao limite de 72 bytes do bcrypt; caracteres multibyte podem ocupar mais de um byte.
+- Após cinco tentativas de login com credenciais inválidas, a combinação de e-mail e IP fica bloqueada por um minuto. Um login bem-sucedido limpa o contador.
+- Os formulários usam proteção CSRF e Form Requests para validação, com mensagens em português.
+- A `StorePolicy` controla criação e edição. Acesso à loja de outro usuário retorna 404; tentativa de criar uma segunda loja retorna 403, inclusive quando a primeira está inativa.
+- `user_id` vem exclusivamente da sessão autenticada. Campos enviados fora da validação, incluindo `user_id` e `slug`, são ignorados.
+
 ## Modelagem inicial
 
 | Entidade | Relações e regras |
@@ -99,13 +142,17 @@ O comando informa o endereço local de acesso. A etapa atual não exige instala�
 | `Store` | Pertence a um `User`, possui vários produtos e tem slug único na plataforma. |
 | `Product` | Pertence a uma `Store` e tem slug único dentro dessa loja. |
 
+Os slugs de loja são gerados no servidor. Por exemplo, `Tech Bahia` produz `tech-bahia`; colisões recebem sufixos como `tech-bahia-2`. Nomes sem uma representação utilizável usam `loja` como base. Ao editar, o slug só é recalculado se o nome mudar, desconsiderando o próprio registro na busca de conflitos. A gravação trata colisões concorrentes e mantém a unicidade garantida pelo banco.
+
 O preço usa `decimal(10,2)` e cast `decimal:2`. O estoque é opcional: `null` representa uma quantidade não informada, enquanto `0` representa estoque zerado.
 
 Os valores de disponibilidade são `AVAILABLE`, `LOW_STOCK`, `OUT_OF_STOCK` e `INACTIVE`. O campo `active` permite registrar a ativação ou desativação de lojas e produtos. Nesta etapa, não há cálculo automático de disponibilidade a partir do estoque nem sincronização automática entre `active` e o status.
 
 A exclusão de um usuário remove sua loja e os produtos vinculados; a exclusão de uma loja remove seus produtos. Desativar um registro preserva seus dados.
 
-A categoria da loja é um campo de texto. A entidade `Category` e o vínculo `category_id` do produto ainda não existem. Os campos de WhatsApp, logo e capa da loja são apenas dados cadastrais, sem integração ou upload implementados.
+A categoria da loja é um campo de texto opcional e não aparece nos formulários desta etapa. A entidade `Category` e o vínculo `category_id` do produto ainda não existem. Logo e capa permanecem apenas como campos na estrutura de dados, sem upload implementado.
+
+Ao reverter a migration que torna a categoria opcional, valores `null` são convertidos para texto vazio para atender à restrição anterior. Categorias já preenchidas e registros vinculados são preservados.
 
 ## Testes
 
@@ -121,16 +168,29 @@ Para executar apenas os testes dos models:
 php artisan test --compact tests/Feature/Models
 ```
 
-Os testes utilizam SQLite em memória, configurado em `phpunit.xml`. Eles verificam relacionamentos, unicidade dos slugs, limite de uma loja por usuário, status, casts e exclusões em cascata.
+Para executar os testes dos fluxos HTTP:
+
+```bash
+php artisan test --compact tests/Feature/Http
+```
+
+Os testes utilizam SQLite em memória, configurado em `phpunit.xml`. A cobertura inclui autenticação, sessões, limite de tentativas, validação, autorização, slugs, ativação/desativação, dashboard, relacionamentos e preservação dos dados durante a migration de categoria e sua reversão.
 
 ## Organização
 
 ```text
 app/Models/                        Models User, Store e Product
 app/ProductAvailabilityStatus.php  Enum de disponibilidade
+app/Http/Controllers/              Autenticação, loja e dashboard
+app/Http/Requests/                 Validação e autorização das entradas
+app/Actions/                       Geração de slug e gravação da loja
+app/Policies/                      Permissões da loja
+app/Rules/                         Validação compatível com bcrypt
 database/migrations/               Estrutura do banco
-database/factories/                 Dados para testes
-tests/Feature/Models/               Testes dos models
+database/factories/                Dados para testes
+resources/views/                   Páginas Blade e formulário compartilhado
+routes/web.php                     Rotas da aplicação
+tests/Feature/                     Testes de models e fluxos da aplicação
 config/database.php                Configuração das conexões
 ```
 
