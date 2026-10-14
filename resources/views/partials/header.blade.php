@@ -1,6 +1,6 @@
 <header class="site-header">
     <div class="header-inner container">
-        <a class="brand" href="{{ route('home') }}" aria-label="AL Commerce — início"><img src="{{ asset('al-commerce-logo.png') }}" alt="AL Commerce" width="1254" height="1254"></a>
+        <a class="brand" href="{{ route('home') }}" aria-label="AL Commerce — início"><img src="{{ asset('al-commerce-logo.svg') }}" alt="AL Commerce" width="1254" height="1254"></a>
         @hasSection('header-search')
             @yield('header-search')
         @else
