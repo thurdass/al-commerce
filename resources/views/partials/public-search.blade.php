@@ -1,4 +1,4 @@
-<form method="GET" action="{{ $searchUrl }}" role="search" aria-label="{{ $productSearch ? 'Buscar produtos' : 'Buscar lojas' }}" @if ($compact ?? false) id="catalog-search" class="catalog-search" @endif>
+<form method="GET" action="{{ $searchUrl }}" role="search" aria-label="{{ $productSearch ? 'Buscar produtos' : 'Buscar lojas' }}" @if ($compact ?? false) id="{{ $searchFormId ?? 'catalog-search' }}" class="catalog-search" @endif>
     @if ($productSearch && ! $withinStore)
         <input type="hidden" name="tipo" value="produtos">
     @endif
