@@ -20,6 +20,9 @@
             <dd>{{ $store->products_count }}</dd>
         </dl>
         <div class="actions">
+            @if ($store->active)
+                <a href="{{ route('public.stores.show', ['store' => $store->slug]) }}">Ver minha vitrine</a>
+            @endif
             <a href="{{ route('stores.edit', $store) }}">Editar loja</a>
             <a href="{{ route('products.index') }}">Gerenciar produtos</a>
         </div>

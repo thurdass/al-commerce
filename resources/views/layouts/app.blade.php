@@ -17,6 +17,9 @@
         .actions { margin-top: 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
         .errors { color: #991b1b; }
         .status { color: #166534; }
+        .catalog-card { border-top: 1px solid #d1d5db; padding: 24px 0; }
+        .catalog-image { max-width: 100%; height: auto; }
+        .image-placeholder { padding: 32px; background: #e5e7eb; color: #374151; text-align: center; }
         dt { font-weight: 600; margin-top: 12px; }
         dd { margin-left: 0; overflow-wrap: anywhere; }
     </style>

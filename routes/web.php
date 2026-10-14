@@ -5,10 +5,19 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
+use App\Http\Controllers\PublicProductController;
+use App\Http\Controllers\PublicProductImageController;
+use App\Http\Controllers\PublicStoreController;
 use App\Http\Controllers\StoreController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+Route::get('/', [PublicStoreController::class, 'index'])->name('home');
+Route::get('/loja/{store:slug}', [PublicStoreController::class, 'show'])->name('public.stores.show');
+Route::scopeBindings()->group(function (): void {
+    Route::get('/loja/{store:slug}/produto/{product:slug}', [PublicProductController::class, 'show'])->name('public.products.show');
+    Route::get('/loja/{store:slug}/produto/{product:slug}/imagem/{image}', PublicProductImageController::class)
+        ->whereNumber('image')->name('public.products.images.show');
+});
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/cadastro', [RegisteredUserController::class, 'create'])->name('register');
