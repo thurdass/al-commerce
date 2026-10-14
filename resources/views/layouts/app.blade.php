@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#171717">
     <title>@yield('title', 'Área do lojista') — AL Commerce</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @fonts
 </head>
 <body class="@yield('body-class')">
     <a class="skip-link" href="#main-content">Ir para o conteúdo</a>

@@ -3,20 +3,25 @@
 @section('title', 'Criar conta')
 
 @section('content')
-    <h1>Criar conta de lojista</h1>
-    <form method="POST" action="{{ route('register.store') }}">
-        @csrf
-        <label for="name">Nome</label>
-        <input id="name" name="name" value="{{ old('name') }}" autocomplete="name" maxlength="255" required autofocus>
-        <label for="email">E-mail</label>
-        <input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="email" maxlength="255" required>
-        <label for="password">Senha (mínimo de 8 caracteres)</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
-        <label for="password_confirmation">Confirme a senha</label>
-        <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
-        <div class="actions">
-            <button type="submit">Criar conta</button>
-            <a href="{{ route('login') }}">Já tenho uma conta</a>
+    <div class="auth-layout">
+        <aside class="auth-story">
+            <p class="eyebrow">AL Commerce / Para lojistas</p>
+            <h2>O próximo<br>capítulo da<br><em>sua loja.</em></h2>
+            <p>Apresente seus produtos e facilite o contato de novos clientes com o seu negócio.</p>
+        </aside>
+        <div class="auth-form">
+            <div class="page-intro"><p class="eyebrow">Vamos começar</p><h1>Criar conta de lojista</h1><p>Sua vitrine começa aqui.</p></div>
+            <form method="POST" action="{{ route('register.store') }}">
+                @csrf
+                <x-input name="name" label="Nome" :value="old('name')" autocomplete="name" maxlength="255" required autofocus />
+                <x-input name="email" label="E-mail" type="email" :value="old('email')" autocomplete="email" maxlength="255" required />
+                <x-input name="password" label="Senha (mínimo de 8 caracteres)" type="password" autocomplete="new-password" minlength="8" maxlength="72" required />
+                <x-input name="password_confirmation" label="Confirme a senha" type="password" autocomplete="new-password" required />
+                <div class="actions">
+                    <x-button>Criar conta</x-button>
+                    <a href="{{ route('login') }}">Já tenho uma conta</a>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 @endsection

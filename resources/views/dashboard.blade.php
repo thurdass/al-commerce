@@ -3,31 +3,36 @@
 @section('title', 'Painel do lojista')
 
 @section('content')
-    <h1>Painel do lojista</h1>
-    <p>Olá, {{ auth()->user()->name }}.</p>
+    @include('partials.merchant-navigation', ['hasStore' => $store !== null])
+    <div class="page-intro">
+        <p class="eyebrow">Seu espaço no AL Commerce</p>
+        <h1>Painel do lojista</h1>
+        <p>Olá, {{ auth()->user()->name }}. Cuide da sua loja e mantenha sua vitrine sempre atualizada.</p>
+    </div>
     @if ($store)
-        <h2>Minha loja</h2>
-        <dl>
-            <dt>Nome</dt>
-            <dd>{{ $store->name }}</dd>
-            <dt>Slug</dt>
-            <dd>{{ $store->slug }}</dd>
-            <dt>Status</dt>
-            <dd>{{ $store->active ? 'Ativa' : 'Inativa' }}</dd>
-            <dt>Cidade</dt>
-            <dd>{{ $store->city }} / {{ $store->state }}</dd>
-            <dt>Produtos cadastrados</dt>
-            <dd>{{ $store->products_count }}</dd>
-        </dl>
-        <div class="actions">
-            @if ($store->active)
-                <a href="{{ route('public.stores.show', ['store' => $store->slug]) }}">Ver minha vitrine</a>
-            @endif
-            <a href="{{ route('stores.edit', $store) }}">Editar loja</a>
-            <a href="{{ route('products.index') }}">Gerenciar produtos</a>
-        </div>
+        <section class="dashboard-store" aria-labelledby="my-store-heading">
+            <div class="dashboard-store-heading">
+                <div><p class="eyebrow">Minha loja</p><h2 id="my-store-heading">{{ $store->name }}</h2></div>
+                @if ($store->active)
+                    <x-button :href="route('public.stores.show', ['store' => $store->slug])" variant="secondary">Ver minha vitrine <span aria-hidden="true">↗</span></x-button>
+                @endif
+            </div>
+            <dl class="dashboard-data">
+                <div><dt>Slug</dt><dd>{{ $store->slug }}</dd></div>
+                <div><dt>Status</dt><dd>{{ $store->active ? 'Ativa' : 'Inativa' }}</dd></div>
+                <div><dt>Cidade</dt><dd>{{ $store->city }} / {{ $store->state }}</dd></div>
+                <div><dt>Produtos cadastrados</dt><dd>{{ $store->products_count }}</dd></div>
+            </dl>
+            <div class="actions">
+                <x-button :href="route('products.index')">Gerenciar produtos</x-button>
+                <a href="{{ route('stores.edit', $store) }}">Editar loja</a>
+            </div>
+        </section>
     @else
-        <p>Você ainda não possui uma loja.</p>
-        <a href="{{ route('stores.create') }}">Criar minha loja</a>
+        <section class="dashboard-store">
+            <h2>Sua próxima vitrine começa aqui.</h2>
+            <p>Você ainda não possui uma loja.</p>
+            <div class="actions"><x-button :href="route('stores.create')">Criar minha loja</x-button></div>
+        </section>
     @endif
 @endsection
