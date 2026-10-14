@@ -34,6 +34,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/minha-conta/excluir', [AccountController::class, 'confirmDelete'])->name('account.delete');
     Route::delete('/minha-conta', [AccountController::class, 'destroy'])->middleware('throttle:6,1')->name('account.destroy');
     Route::get('/minha-loja/produtos/criar', [ProductController::class, 'create'])->name('products.create');
     Route::post('/minha-loja/produtos', [ProductController::class, 'store'])->name('products.store');

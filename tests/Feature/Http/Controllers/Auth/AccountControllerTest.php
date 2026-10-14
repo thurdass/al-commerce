@@ -3,6 +3,7 @@
 namespace Tests\Feature\Http\Controllers\Auth;
 
 use App\Actions\DeleteAccount;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,47 @@ use Tests\TestCase;
 class AccountControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function test_confirmation_page_is_accessible_from_dashboard_without_deleting_account(bool $hasStore): void
+    {
+        $user = User::factory()->create();
+        if ($hasStore) {
+            Store::factory()->for($user)->create();
+        }
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->assertSee(route('account.delete'))->assertSee('Excluir minha conta');
+        $this->get(route('account.delete'))->assertOk()->assertViewIs('auth.delete-account')
+            ->assertViewHas('hasStore', $hasStore)->assertSee($user->email)
+            ->assertSee('Esta ação é permanente.')->assertSee('Digite EXCLUIR para confirmar')
+            ->assertSee('name="_token"', false)->assertSee('value="DELETE"', false)
+            ->assertSee(route('account.destroy'))->assertSee(route('dashboard'));
+
+        $this->assertModelExists($user);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_guest_cannot_open_confirmation_page(): void
+    {
+        $this->get(route('account.delete'))->assertRedirectToRoute('login');
+    }
+
+    public function test_validation_errors_are_accessible_and_do_not_repopulate_password_or_confirmation(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->from(route('account.delete'))->delete(route('account.destroy'), [
+            'password' => 'wrong-password', 'confirmation' => 'wrong-confirmation',
+        ])->assertRedirectToRoute('account.delete');
+        $this->get(route('account.delete'))->assertOk()
+            ->assertSee('A senha atual está incorreta.')->assertSee('aria-invalid="true"', false)
+            ->assertSee('id="password-error"', false)->assertSee('id="confirmation-error"', false)
+            ->assertDontSee('wrong-password')->assertDontSee('wrong-confirmation');
+
+        $this->assertModelExists($user);
+    }
 
     public function test_user_can_delete_own_account_and_end_the_session(): void
     {

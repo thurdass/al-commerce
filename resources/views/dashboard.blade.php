@@ -35,4 +35,12 @@
             <div class="actions"><x-button :href="route('stores.create')">Criar minha loja</x-button></div>
         </section>
     @endif
+    <section class="account-danger-zone" aria-labelledby="account-settings-heading">
+        <div>
+            <p class="eyebrow">Sua conta</p>
+            <h2 id="account-settings-heading">Exclusão de conta</h2>
+            <p>Encerre sua conta e remova permanentemente sua loja, seus produtos e suas imagens.</p>
+        </div>
+        <a class="danger-link" href="{{ route('account.delete') }}">Excluir minha conta <span aria-hidden="true">↗</span></a>
+    </section>
 @endsection

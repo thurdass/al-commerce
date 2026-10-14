@@ -215,6 +215,18 @@
 .delete-panel { max-width: 640px; margin: var(--space-8) auto; }
 .delete-panel form { margin-top: var(--space-8); }
 .delete-panel p { margin-top: var(--space-4); }
+.account-danger-zone { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-6); margin-top: 64px; padding-top: var(--space-8); border-top: 1px solid var(--line); }
+.account-danger-zone h2 { margin-top: var(--space-2); font-size: 1.5rem; }
+.account-danger-zone p:not(.eyebrow) { max-width: 60ch; margin-top: var(--space-3); color: var(--muted); }
+.danger-link { display: inline-flex; align-items: center; gap: var(--space-3); min-height: 48px; color: var(--danger); font-weight: 500; }
+.account-delete-page { max-width: 640px; margin-inline: auto; }
+.account-delete-page .page-intro { margin-bottom: var(--space-8); }
+.account-delete-page .account-identity { overflow-wrap: anywhere; color: var(--ink); }
+.account-delete-page form { display: grid; gap: var(--space-6); }
+.deletion-notice { padding: var(--space-6); margin-bottom: var(--space-8); background: var(--surface); border-left: 2px solid var(--danger); }
+.deletion-notice h2 { font-size: 1.125rem; letter-spacing: -.015em; }
+.deletion-notice p { margin-top: var(--space-3); color: var(--muted); font-size: .875rem; }
+.account-delete-page .actions { margin-top: var(--space-2); }
 .site-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-6); padding-block: var(--space-8); border-top: 1px solid var(--line); font-size: .75rem; color: var(--muted); }
 .footer-brand { font-size: 1.25rem; font-weight: 600; letter-spacing: -.04em; color: var(--ink); }
 
