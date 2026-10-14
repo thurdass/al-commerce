@@ -22,7 +22,8 @@ class PublicStoreSearchTest extends TestCase
         $response = $this->get(route('home', ['q' => ' tech ', 'cidade' => ' salv ', 'estado' => 'ba']));
 
         $response->assertOk()->assertSee('Tech Bahia')->assertSee('value="tech"', false)
-            ->assertSee('value="salv"', false)->assertSee('value="BA"', false);
+            ->assertSee('value="salv"', false)->assertSee('value="BA"', false)
+            ->assertDontSee('Lojas em destaque');
         $this->assertSame([$match->id], $response->viewData('stores')->pluck('id')->all());
     }
 

@@ -23,10 +23,12 @@
         dt { font-weight: 600; margin-top: 12px; }
         dd { margin-left: 0; overflow-wrap: anywhere; }
     </style>
+    @stack('styles')
 </head>
-<body>
+<body class="@yield('body-class')">
     <header>
         <a href="{{ route('home') }}">AL Commerce</a>
+        @yield('header-search')
         <nav aria-label="Navegação principal">
             @auth
                 <a href="{{ route('dashboard') }}">Meu painel</a>

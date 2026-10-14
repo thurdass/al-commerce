@@ -22,7 +22,7 @@ class PublicProductSearchTest extends TestCase
         Product::factory()->inactive()->create();
         Product::factory()->for(Store::factory()->inactive())->create();
 
-        $this->get(route('home', ['tipo' => 'produtos']))->assertOk()->assertViewHas('products',
+        $this->get(route('home', ['tipo' => 'produtos']))->assertOk()->assertDontSee('Lojas em destaque')->assertViewHas('products',
             fn ($products) => $products->pluck('id')->all() === [$visible->id]);
     }
 

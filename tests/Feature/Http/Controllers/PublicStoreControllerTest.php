@@ -39,13 +39,33 @@ class PublicStoreControllerTest extends TestCase
         $response->assertOk()->assertSee('Página 1 de 2 (13 lojas)')->assertSee('rel="next"', false);
         $this->assertSame($stores->take(12)->pluck('id')->all(), $response->viewData('stores')->pluck('id')->all());
         $response = $this->get(route('home', ['page' => 2]));
-        $response->assertOk()->assertSee('rel="prev"', false)->assertDontSee('rel="next"', false);
+        $response->assertOk()->assertSee('rel="prev"', false)->assertDontSee('rel="next"', false)
+            ->assertDontSee('Lojas em destaque');
         $this->assertSame([$stores->last()->id], $response->viewData('stores')->pluck('id')->all());
+    }
+
+    public function test_home_highlights_the_first_three_stores_before_filters_and_keeps_the_full_listing(): void
+    {
+        Store::factory()->count(4)->sequence(
+            ['name' => 'Armazém Local'],
+            ['name' => 'Bazar Local'],
+            ['name' => 'Casa Local'],
+            ['name' => 'Doceria Local'],
+        )->create();
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk()->assertSeeInOrder([
+            'Lojas em destaque', 'Armazém Local', 'Bazar Local', 'Casa Local',
+            'Todas as lojas (4)', 'Ordenar por',
+            'Armazém Local', 'Bazar Local', 'Casa Local', 'Doceria Local',
+        ]);
     }
 
     public function test_empty_home_and_store_have_clear_empty_states(): void
     {
-        $this->get(route('home'))->assertOk()->assertSee('Nenhuma loja disponível no momento.');
+        $this->get(route('home'))->assertOk()->assertSee('Nenhuma loja disponível no momento.')
+            ->assertDontSee('Lojas em destaque');
         $store = Store::factory()->create();
 
         $this->get(route('public.stores.show', ['store' => $store->slug]))->assertOk()
