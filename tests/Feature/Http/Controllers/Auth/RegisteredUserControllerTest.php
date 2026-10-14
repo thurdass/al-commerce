@@ -3,8 +3,10 @@
 namespace Tests\Feature\Http\Controllers\Auth;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -20,6 +22,7 @@ class RegisteredUserControllerTest extends TestCase
 
     public function test_registration_creates_user_with_hashed_password_and_authenticates(): void
     {
+        Notification::fake();
         $this->withSession(['marker' => 'before-login']);
         $sessionId = session()->getId();
 
@@ -29,7 +32,7 @@ class RegisteredUserControllerTest extends TestCase
             'id' => 999,
         ]));
 
-        $response->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
+        $response->assertRedirectToRoute('verification.notice')->assertSessionHasNoErrors();
         $user = User::query()->sole();
         $this->assertSame('maria@example.com', $user->email);
         $this->assertSame('Maria Santos', $user->name);
@@ -39,6 +42,7 @@ class RegisteredUserControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->assertNotSame($sessionId, session()->getId());
         $this->assertDatabaseCount('stores', 0);
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     public function test_registration_rejects_existing_email_ignoring_case(): void
@@ -107,15 +111,17 @@ class RegisteredUserControllerTest extends TestCase
 
     public function test_registration_accepts_multibyte_password_within_bcrypt_limit(): void
     {
+        Notification::fake();
         $password = str_repeat('é', 36);
 
         $this->post(route('register.store'), $this->payload([
             'password' => $password, 'password_confirmation' => $password,
-        ]))->assertRedirectToRoute('dashboard')->assertSessionHasNoErrors();
+        ]))->assertRedirectToRoute('verification.notice')->assertSessionHasNoErrors();
 
         $user = User::query()->sole();
         $this->assertTrue(Hash::check($password, $user->password));
         $this->assertAuthenticatedAs($user);
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     /** @return array<string, mixed> */

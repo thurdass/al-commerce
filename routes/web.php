@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\AccountController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
@@ -34,8 +36,16 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/email/verificar', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('/email/verificar/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1,verification-link'])->name('verification.verify');
+    Route::post('/email/reenviar-verificacao', EmailVerificationNotificationController::class)
+        ->middleware('throttle:verification-email')->name('verification.send');
     Route::get('/minha-conta/excluir', [AccountController::class, 'confirmDelete'])->name('account.delete');
     Route::delete('/minha-conta', [AccountController::class, 'destroy'])->middleware('throttle:6,1')->name('account.destroy');
+});
+
+Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/minha-loja/produtos/criar', [ProductController::class, 'create'])->name('products.create');
     Route::post('/minha-loja/produtos', [ProductController::class, 'store'])->name('products.store');
     Route::get('/minha-loja/produtos', [ProductController::class, 'index'])->name('products.index');
