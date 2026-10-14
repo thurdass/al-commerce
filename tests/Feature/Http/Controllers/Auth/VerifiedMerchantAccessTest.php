@@ -95,7 +95,8 @@ class VerifiedMerchantAccessTest extends TestCase
         Storage::fake(DeleteAccount::BACKUP_DISK);
         $user = User::factory()->unverified()->create();
 
-        $this->actingAs($user)->get(route('account.delete'))->assertOk();
+        $this->actingAs($user)->get(route('account.delete'))->assertOk()
+            ->assertSee('Cancelar e voltar à verificação')->assertDontSee(route('products.index'));
         $this->delete(route('account.destroy'), ['password' => 'password', 'confirmation' => 'EXCLUIR'])
             ->assertRedirectToRoute('home')->assertSessionHasNoErrors();
 

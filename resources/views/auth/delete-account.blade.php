@@ -3,7 +3,9 @@
 @section('title', 'Excluir minha conta')
 
 @section('content')
-    @include('partials.merchant-navigation')
+    @if (auth()->user()->hasVerifiedEmail())
+        @include('partials.merchant-navigation')
+    @endif
     <div class="account-delete-page">
         <div class="page-intro">
             <p class="eyebrow">Sua conta / Encerramento</p>
@@ -15,7 +17,7 @@
             <h2 id="deletion-warning-heading">Esta ação é permanente.</h2>
             <p>Sua conta, sua loja, todos os produtos e as imagens vinculadas serão excluídos. Não será possível recuperar esses dados.</p>
             <p>Ao concluir, você sairá da conta e voltará à página inicial.</p>
-            @if ($hasStore)
+            @if ($hasStore && auth()->user()->hasVerifiedEmail())
                 <p>Quer apenas pausar sua vitrine? Volte ao painel e desative a loja na edição. Desativar preserva seus dados.</p>
             @endif
         </section>
@@ -26,7 +28,11 @@
             <x-input name="confirmation" label="Digite EXCLUIR para confirmar" hint="Use letras maiúsculas, exatamente como indicado." autocomplete="off" spellcheck="false" autocapitalize="characters" required />
             <div class="actions">
                 <x-button variant="danger">Excluir minha conta definitivamente</x-button>
-                <a href="{{ route('dashboard') }}">Cancelar e voltar ao painel</a>
+                @if (auth()->user()->hasVerifiedEmail())
+                    <a href="{{ route('dashboard') }}">Cancelar e voltar ao painel</a>
+                @else
+                    <a href="{{ route('verification.notice') }}">Cancelar e voltar à verificação</a>
+                @endif
             </div>
         </form>
     </div>

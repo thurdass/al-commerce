@@ -55,7 +55,9 @@ class EmailVerificationControllerTest extends TestCase
         $user = User::factory()->unverified()->create();
         $url = (new VerifyEmail)->toMail($user)->actionUrl.'&tampered=1';
 
-        $this->actingAs($user)->get($url)->assertForbidden();
+        $this->actingAs($user)->get($url)->assertForbidden()->assertViewIs('auth.verification-error')
+            ->assertSee('O link é inválido, expirou ou pertence a outra conta.')
+            ->assertSee(route('verification.notice'));
 
         $this->assertNull($user->fresh()->email_verified_at);
     }
@@ -149,5 +151,15 @@ class EmailVerificationControllerTest extends TestCase
         $this->get((new VerifyEmail)->toMail($user)->actionUrl)->assertRedirectToRoute('stores.create');
 
         $this->get(route('stores.create'))->assertOk();
+    }
+
+    public function test_invalid_json_verification_keeps_json_error_response(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)->getJson(route('verification.verify', ['id' => $user->id, 'hash' => sha1($user->email)]))
+            ->assertForbidden()->assertJsonStructure(['message']);
+
+        $this->assertNull($user->fresh()->email_verified_at);
     }
 }

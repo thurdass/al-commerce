@@ -16,7 +16,11 @@
         @endif
         <nav class="account-navigation" aria-label="Navegação principal">
             @auth
-                <a href="{{ route('dashboard') }}">Meu painel</a>
+                @if (auth()->user()->hasVerifiedEmail())
+                    <a href="{{ route('dashboard') }}">Meu painel</a>
+                @else
+                    <a href="{{ route('verification.notice') }}">Verificar e-mail</a>
+                @endif
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="button-text" type="submit">Sair</button>

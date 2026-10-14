@@ -83,7 +83,7 @@ class EmailVerificationNotificationControllerTest extends TestCase
         Notification::assertSentToTimes($user, VerifyEmail::class, 7);
     }
 
-    public function test_transport_failure_keeps_account_unverified_and_allows_retry(): void
+    public function test_transport_failure_preserves_session_and_unverified_account(): void
     {
         $user = User::factory()->unverified()->create();
         $this->mock(Dispatcher::class)->shouldReceive('send')->once()->andThrow(new TransportException('SMTP unavailable'));
