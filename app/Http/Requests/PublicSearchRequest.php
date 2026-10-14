@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Store;
 use App\ProductAvailabilityStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,12 @@ class PublicSearchRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        $store = $this->route('store');
+
+        if ($store instanceof Store) {
+            abort_unless($store->active, 404);
+        }
+
         return true;
     }
 
@@ -17,10 +24,10 @@ class PublicSearchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo' => ['nullable', 'string', Rule::in(['lojas', 'produtos'])],
+            'tipo' => [Rule::excludeIf($this->withinStore()), 'nullable', 'string', Rule::in(['lojas', 'produtos'])],
             'q' => ['nullable', 'string', 'max:255'],
-            'cidade' => ['nullable', 'string', 'max:255'],
-            'estado' => ['nullable', 'string', Rule::in([
+            'cidade' => [Rule::excludeIf($this->withinStore()), 'nullable', 'string', 'max:255'],
+            'estado' => [Rule::excludeIf($this->withinStore()), 'nullable', 'string', Rule::in([
                 'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
                 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
                 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
@@ -35,7 +42,12 @@ class PublicSearchRequest extends FormRequest
 
     public function searchesProducts(): bool
     {
-        return $this->input('tipo') === 'produtos';
+        return $this->withinStore() || $this->input('tipo') === 'produtos';
+    }
+
+    public function withinStore(): bool
+    {
+        return $this->routeIs('public.stores.show');
     }
 
     /** @return array<string, string> */
@@ -53,7 +65,9 @@ class PublicSearchRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return $this->searchesProducts() ? route('home', ['tipo' => 'produtos']) : $this->url();
+        return $this->searchesProducts() && ! $this->withinStore()
+            ? route('home', ['tipo' => 'produtos'])
+            : $this->url();
     }
 
     /** @return array<string, string> */

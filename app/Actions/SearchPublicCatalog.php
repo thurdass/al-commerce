@@ -35,14 +35,20 @@ class SearchPublicCatalog
      * @param  array{q?: string, cidade?: string, estado?: string, categoria?: string, disponibilidade?: string, ordenar?: string, tipo?: string}  $filters
      * @return LengthAwarePaginator<int, Product>
      */
-    public function products(array $filters): LengthAwarePaginator
+    public function products(array $filters, ?Store $store = null): LengthAwarePaginator
     {
         $query = Product::query()->active()
             ->whereHas('store', function (Builder $query) use ($filters): void {
                 $query->active();
                 $this->location($query, $filters);
             })
-            ->with(['store:id,name,slug,city,state', 'category', 'coverImage']);
+            ->with(['category', 'coverImage']);
+
+        if ($store !== null) {
+            $query->where('store_id', $store->id);
+        } else {
+            $query->with('store:id,name,slug,city,state');
+        }
 
         $this->containing($query, 'name', $filters['q'] ?? null);
 

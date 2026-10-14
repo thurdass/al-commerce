@@ -1,15 +1,17 @@
 <form method="GET" action="{{ $searchUrl }}" role="search" aria-label="{{ $productSearch ? 'Buscar produtos' : 'Buscar lojas' }}">
-    @if ($productSearch)
+    @if ($productSearch && ! $withinStore)
         <input type="hidden" name="tipo" value="produtos">
     @endif
     <label for="q">{{ $productSearch ? 'Nome do produto' : 'Nome da loja' }}</label>
     <input id="q" name="q" type="search" maxlength="255" value="{{ $filters['q'] ?? '' }}">
 
-    <label for="cidade">Cidade (nome ou parte dele)</label>
-    <input id="cidade" name="cidade" maxlength="255" value="{{ $filters['cidade'] ?? '' }}">
+    @if (! $withinStore)
+        <label for="cidade">Cidade (nome ou parte dele)</label>
+        <input id="cidade" name="cidade" maxlength="255" value="{{ $filters['cidade'] ?? '' }}">
 
-    <label for="estado">Estado (UF)</label>
-    <input id="estado" name="estado" maxlength="2" placeholder="BA" value="{{ $filters['estado'] ?? '' }}">
+        <label for="estado">Estado (UF)</label>
+        <input id="estado" name="estado" maxlength="2" placeholder="BA" value="{{ $filters['estado'] ?? '' }}">
+    @endif
 
     @if ($productSearch)
         <label for="categoria">Categoria</label>
@@ -41,6 +43,6 @@
 
     <div class="actions">
         <button type="submit">Buscar</button>
-        <a href="{{ $productSearch ? route('home', ['tipo' => 'produtos']) : $searchUrl }}">Limpar filtros</a>
+        <a href="{{ $productSearch && ! $withinStore ? route('home', ['tipo' => 'produtos']) : $searchUrl }}">Limpar filtros</a>
     </div>
 </form>

@@ -21,18 +21,24 @@ class PublicStoreController extends Controller
             'products' => $productSearch ? $search->products($filters) : null,
             'filters' => $filters,
             'productSearch' => $productSearch,
+            'withinStore' => false,
             'categories' => $productSearch ? Category::query()->orderBy('name')->get(['name', 'slug']) : collect(),
             'availabilityStatuses' => ProductAvailabilityStatus::cases(),
         ]);
     }
 
-    public function show(Store $store): View
+    public function show(PublicSearchRequest $request, Store $store, SearchPublicCatalog $search): View
     {
         abort_unless($store->active, 404);
 
         return view('stores.show', [
             'store' => $store->load('presentationProduct.coverImage'),
-            'products' => $store->products()->active()->with(['category', 'coverImage'])->orderByDesc('id')->paginate(12),
+            'products' => $search->products($request->filters(), $store),
+            'filters' => $request->filters(),
+            'productSearch' => true,
+            'withinStore' => true,
+            'categories' => Category::query()->orderBy('name')->get(['name', 'slug']),
+            'availabilityStatuses' => ProductAvailabilityStatus::cases(),
         ]);
     }
 }
