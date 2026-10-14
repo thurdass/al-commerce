@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -26,6 +27,39 @@ class SearchPublicCatalog
         } else {
             $query->orderBy('name')->orderBy('id');
         }
+
+        return $query->paginate(12)->appends($filters);
+    }
+
+    /**
+     * @param  array{q?: string, cidade?: string, estado?: string, categoria?: string, disponibilidade?: string, ordenar?: string, tipo?: string}  $filters
+     * @return LengthAwarePaginator<int, Product>
+     */
+    public function products(array $filters): LengthAwarePaginator
+    {
+        $query = Product::query()->active()
+            ->whereHas('store', function (Builder $query) use ($filters): void {
+                $query->active();
+                $this->location($query, $filters);
+            })
+            ->with(['store:id,name,slug,city,state', 'category', 'coverImage']);
+
+        $this->containing($query, 'name', $filters['q'] ?? null);
+
+        if (isset($filters['categoria'])) {
+            $query->whereHas('category', fn (Builder $query) => $query->where('slug', $filters['categoria']));
+        }
+
+        if (isset($filters['disponibilidade'])) {
+            $query->where('availability_status', $filters['disponibilidade']);
+        }
+
+        match ($filters['ordenar'] ?? 'recentes') {
+            'nome' => $query->orderBy('name')->orderBy('id'),
+            'menor_preco' => $query->orderBy('price')->orderBy('id'),
+            'maior_preco' => $query->orderByDesc('price')->orderBy('id'),
+            default => $query->orderByDesc('id'),
+        };
 
         return $query->paginate(12)->appends($filters);
     }

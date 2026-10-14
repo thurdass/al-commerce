@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\ProductAvailabilityStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,6 +17,7 @@ class PublicSearchRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'tipo' => ['nullable', 'string', Rule::in(['lojas', 'produtos'])],
             'q' => ['nullable', 'string', 'max:255'],
             'cidade' => ['nullable', 'string', 'max:255'],
             'estado' => ['nullable', 'string', Rule::in([
@@ -23,8 +25,17 @@ class PublicSearchRequest extends FormRequest
                 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
                 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
             ])],
-            'ordenar' => ['nullable', 'string', Rule::in(['nome', 'recentes'])],
+            'categoria' => [Rule::excludeIf(! $this->searchesProducts()), 'nullable', 'string', 'max:255', Rule::exists('categories', 'slug')],
+            'disponibilidade' => [Rule::excludeIf(! $this->searchesProducts()), 'nullable', Rule::enum(ProductAvailabilityStatus::class)],
+            'ordenar' => ['nullable', 'string', Rule::in($this->searchesProducts()
+                ? ['nome', 'recentes', 'menor_preco', 'maior_preco']
+                : ['nome', 'recentes'])],
         ];
+    }
+
+    public function searchesProducts(): bool
+    {
+        return $this->input('tipo') === 'produtos';
     }
 
     /** @return array<string, string> */
@@ -42,13 +53,15 @@ class PublicSearchRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return $this->url();
+        return $this->searchesProducts() ? route('home', ['tipo' => 'produtos']) : $this->url();
     }
 
     /** @return array<string, string> */
     public function messages(): array
     {
         return [
+            'tipo.string' => 'Escolha buscar lojas ou produtos.',
+            'tipo.in' => 'Escolha buscar lojas ou produtos.',
             'q.string' => 'Informe um termo de busca válido.',
             'q.max' => 'A busca deve ter no máximo 255 caracteres.',
             'cidade.string' => 'Informe uma cidade válida.',
@@ -57,6 +70,10 @@ class PublicSearchRequest extends FormRequest
             'estado.in' => 'Informe uma UF válida.',
             'ordenar.string' => 'Escolha uma ordenação válida.',
             'ordenar.in' => 'Escolha uma ordenação válida.',
+            'categoria.string' => 'Escolha uma categoria válida.',
+            'categoria.max' => 'Escolha uma categoria válida.',
+            'categoria.exists' => 'Escolha uma categoria válida.',
+            'disponibilidade.enum' => 'Escolha uma disponibilidade válida.',
         ];
     }
 }
