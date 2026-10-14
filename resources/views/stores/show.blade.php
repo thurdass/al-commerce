@@ -8,6 +8,7 @@
     @include('stores.partials.presentation', ['store' => $store])
     <p>{{ $store->description }}</p>
     <p>{{ $store->city }} / {{ $store->state }}</p>
+    @include('partials.whatsapp-contact', ['whatsappUrl' => $whatsappUrl])
 
     <h2>Produtos</h2>
     @include('partials.public-search', ['searchUrl' => route('public.stores.show', ['store' => $store->slug])])

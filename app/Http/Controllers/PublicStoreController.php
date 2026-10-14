@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\GenerateWhatsAppLink;
 use App\Actions\SearchPublicCatalog;
 use App\Http\Requests\PublicSearchRequest;
 use App\Models\Category;
@@ -27,12 +28,13 @@ class PublicStoreController extends Controller
         ]);
     }
 
-    public function show(PublicSearchRequest $request, Store $store, SearchPublicCatalog $search): View
+    public function show(PublicSearchRequest $request, Store $store, SearchPublicCatalog $search, GenerateWhatsAppLink $whatsapp): View
     {
         abort_unless($store->active, 404);
 
         return view('stores.show', [
             'store' => $store->load('presentationProduct.coverImage'),
+            'whatsappUrl' => $whatsapp->handle($store),
             'products' => $search->products($request->filters(), $store),
             'filters' => $request->filters(),
             'productSearch' => true,

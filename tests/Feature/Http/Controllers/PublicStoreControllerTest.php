@@ -63,7 +63,7 @@ class PublicStoreControllerTest extends TestCase
         $this->get(route('public.stores.show', ['store' => $store->slug]))->assertOk()
             ->assertSee($store->name)->assertSee($product->name)->assertSee('Eletrônicos')->assertSee('R$ 1.234,50')->assertSee('Disponível')
             ->assertSee(route('public.products.show', ['store' => $store->slug, 'product' => $product->slug]))
-            ->assertDontSee($inactive->name)->assertDontSee($other->name)->assertDontSee($store->whatsapp)
+            ->assertDontSee($inactive->name)->assertDontSee($other->name)->assertDontSeeText($store->whatsapp)
             ->assertSee(route('home'));
     }
 
