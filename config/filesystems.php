@@ -38,6 +38,13 @@ return [
             'report' => false,
         ],
 
+        'store_images' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/store-images'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'product_images' => [
             'driver' => 'local',
             'root' => storage_path('app/private/product-images'),

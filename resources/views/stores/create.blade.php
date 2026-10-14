@@ -5,6 +5,7 @@
 @section('content')
     <h1>Criar minha loja</h1>
     <p>O slug será gerado automaticamente a partir do nome da loja.</p>
+    <p>Depois de criar a loja, você poderá adicionar uma imagem na edição.</p>
     <form method="POST" action="{{ route('stores.store') }}">
         @csrf
         @include('stores.partials.form', ['store' => null])

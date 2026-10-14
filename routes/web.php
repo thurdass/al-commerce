@@ -8,11 +8,14 @@ use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\PublicProductController;
 use App\Http\Controllers\PublicProductImageController;
 use App\Http\Controllers\PublicStoreController;
+use App\Http\Controllers\PublicStoreImageController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\StoreImageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicStoreController::class, 'index'])->name('home');
 Route::get('/loja/{store:slug}', [PublicStoreController::class, 'show'])->name('public.stores.show');
+Route::get('/loja/{store:slug}/imagem', PublicStoreImageController::class)->name('public.stores.image');
 Route::scopeBindings()->group(function (): void {
     Route::get('/loja/{store:slug}/produto/{product:slug}', [PublicProductController::class, 'show'])->name('public.products.show');
     Route::get('/loja/{store:slug}/produto/{product:slug}/imagem/{image}', PublicProductImageController::class)
@@ -45,6 +48,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/minha-loja/criar', [StoreController::class, 'create'])->name('stores.create');
     Route::post('/minha-loja', [StoreController::class, 'store'])->name('stores.store');
+    Route::post('/minha-loja/{store}/imagem', [StoreImageController::class, 'store'])->whereNumber('store')->name('stores.image.store');
+    Route::get('/minha-loja/{store}/imagem', [StoreImageController::class, 'show'])->whereNumber('store')->name('stores.image.show');
+    Route::delete('/minha-loja/{store}/imagem', [StoreImageController::class, 'destroy'])->whereNumber('store')->name('stores.image.destroy');
     Route::get('/minha-loja/{store}/editar', [StoreController::class, 'edit'])->whereNumber('store')->name('stores.edit');
     Route::match(['put', 'patch'], '/minha-loja/{store}', [StoreController::class, 'update'])->whereNumber('store')->name('stores.update');
 });

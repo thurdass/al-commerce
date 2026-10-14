@@ -15,4 +15,5 @@
             <a href="{{ route('dashboard') }}">Voltar</a>
         </div>
     </form>
+    @include('stores.partials.image')
 @endsection

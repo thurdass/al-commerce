@@ -32,6 +32,10 @@ class Store extends Model
     /** @use HasFactory<StoreFactory> */
     use HasFactory;
 
+    public const IMAGE_DISK = 'store_images';
+
+    public const IMAGE_MAX_SIZE_KB = 2048;
+
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
