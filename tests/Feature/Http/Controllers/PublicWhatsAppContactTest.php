@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -30,11 +31,15 @@ class PublicWhatsAppContactTest extends TestCase
 
     #[TestWith([''])]
     #[TestWith(['not-a-number'])]
-    public function test_store_omits_contact_when_the_phone_is_missing_or_invalid(string $phone): void
+    public function test_store_and_product_omit_contact_when_the_phone_is_missing_or_invalid(string $phone): void
     {
         $store = Store::factory()->create(['whatsapp' => $phone]);
 
         $this->get(route('public.stores.show', ['store' => $store->slug]))->assertOk()
+            ->assertDontSee('Falar com a loja pelo WhatsApp')->assertDontSee('https://wa.me/');
+
+        $product = Product::factory()->for($store)->create();
+        $this->get(route('public.products.show', ['store' => $store->slug, 'product' => $product->slug]))->assertOk()
             ->assertDontSee('Falar com a loja pelo WhatsApp')->assertDontSee('https://wa.me/');
     }
 
@@ -57,5 +62,34 @@ class PublicWhatsAppContactTest extends TestCase
         $response->assertOk()->assertSee($name)->assertDontSee($name, false);
         parse_str(parse_url($response->viewData('whatsappUrl'), PHP_URL_QUERY), $query);
         $this->assertSame(['text' => 'Olá! Vi a loja '.$name.' pelo AL Commerce e gostaria de mais informações.'], $query);
+    }
+
+    public function test_product_contact_contains_the_product_store_and_canonical_public_url(): void
+    {
+        $store = Store::factory()->create(['name' => 'Tech Bahia & Cia', 'slug' => 'tech-bahia', 'whatsapp' => '5571999998888']);
+        $product = Product::factory()->for($store)->create(['name' => 'Mouse G305 & Edição "A+"', 'slug' => 'mouse-g305']);
+        $url = route('public.products.show', ['store' => 'tech-bahia', 'product' => 'mouse-g305']);
+
+        $response = $this->get($url.'?whatsapp=5511988887777&text=outra-mensagem');
+
+        $response->assertOk()->assertSee('Falar com a loja pelo WhatsApp')
+            ->assertSee('href="'.$response->viewData('whatsappUrl').'"', false)
+            ->assertDontSee('5511988887777')->assertDontSee('outra-mensagem')
+            ->assertDontSee($store->user->email)->assertDontSee(route('products.edit', $product));
+        $this->assertSame('/5571999998888', parse_url($response->viewData('whatsappUrl'), PHP_URL_PATH));
+        parse_str(parse_url($response->viewData('whatsappUrl'), PHP_URL_QUERY), $query);
+        $this->assertSame(['text' => 'Olá! Vi o produto Mouse G305 & Edição "A+" na loja Tech Bahia & Cia pelo AL Commerce e gostaria de saber se ainda está disponível.'."\n".$url], $query);
+        $this->assertGuest();
+    }
+
+    public function test_products_with_the_same_slug_use_their_own_store_contact(): void
+    {
+        $first = Product::factory()->for(Store::factory()->state(['whatsapp' => '5571999998888']))->create(['slug' => 'mouse']);
+        $second = Product::factory()->for(Store::factory()->state(['whatsapp' => '5511988887777']))->create(['slug' => 'mouse']);
+
+        $this->get(route('public.products.show', ['store' => $first->store->slug, 'product' => 'mouse']))->assertOk()
+            ->assertSee('https://wa.me/5571999998888?text=')->assertDontSee('5511988887777');
+        $this->get(route('public.products.show', ['store' => $second->store->slug, 'product' => 'mouse']))->assertOk()
+            ->assertSee('https://wa.me/5511988887777?text=')->assertDontSee('5571999998888');
     }
 }

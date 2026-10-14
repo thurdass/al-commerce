@@ -35,7 +35,7 @@ class PublicProductControllerTest extends TestCase
             ->assertSee('R$ 199,90')->assertSee($category->name)->assertSee('Disponível')->assertSee($storeUrl)
             ->assertSeeInOrder([$coverUrl, $secondaryUrl])->assertDontSee($cover->image_path)
             ->assertDontSee(route('products.edit', $product))->assertDontSee($store->user->email)
-            ->assertDontSee($store->whatsapp);
+            ->assertDontSeeText($store->whatsapp);
         $this->assertGuest();
     }
 
@@ -65,7 +65,7 @@ class PublicProductControllerTest extends TestCase
         $product = Product::factory()->create(['active' => true, 'availability_status' => $status]);
 
         $this->get(route('public.products.show', ['store' => $product->store->slug, 'product' => $product->slug]))
-            ->assertOk()->assertSee($label);
+            ->assertOk()->assertSee($label)->assertSee('Falar com a loja pelo WhatsApp');
     }
 
     #[TestWith([false, true])]
@@ -77,8 +77,8 @@ class PublicProductControllerTest extends TestCase
         $product = Product::factory()->for($store)->create(['active' => $productActive]);
         $url = route('public.products.show', ['store' => $store->slug, 'product' => $product->slug]);
 
-        $this->get($url)->assertNotFound();
-        $this->actingAs($store->user)->get($url)->assertNotFound();
+        $this->get($url)->assertNotFound()->assertDontSee('https://wa.me/');
+        $this->actingAs($store->user)->get($url)->assertNotFound()->assertDontSee('https://wa.me/');
         $this->get(route('products.edit', $product))->assertOk();
     }
 

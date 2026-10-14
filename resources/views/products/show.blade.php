@@ -29,4 +29,5 @@
             <dd>{{ $product->stock_quantity }}</dd>
         @endif
     </dl>
+    @include('partials.whatsapp-contact', ['whatsappUrl' => $whatsappUrl])
 @endsection

@@ -2,11 +2,12 @@
 
 namespace App\Actions;
 
+use App\Models\Product;
 use App\Models\Store;
 
 class GenerateWhatsAppLink
 {
-    public function handle(Store $store): ?string
+    public function handle(Store $store, ?Product $product = null): ?string
     {
         $formatted = trim($store->whatsapp ?? '');
 
@@ -21,6 +22,11 @@ class GenerateWhatsAppLink
         }
 
         $message = "Olá! Vi a loja {$store->name} pelo AL Commerce e gostaria de mais informações.";
+
+        if ($product !== null) {
+            $url = route('public.products.show', ['store' => $store->slug, 'product' => $product->slug]);
+            $message = "Olá! Vi o produto {$product->name} na loja {$store->name} pelo AL Commerce e gostaria de saber se ainda está disponível.\n{$url}";
+        }
 
         return 'https://wa.me/'.$phone.'?text='.rawurlencode($message);
     }
