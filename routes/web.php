@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AccountController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
@@ -33,6 +34,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function (): void {
+    Route::delete('/minha-conta', [AccountController::class, 'destroy'])->middleware('throttle:6,1')->name('account.destroy');
     Route::get('/minha-loja/produtos/criar', [ProductController::class, 'create'])->name('products.create');
     Route::post('/minha-loja/produtos', [ProductController::class, 'store'])->name('products.store');
     Route::get('/minha-loja/produtos', [ProductController::class, 'index'])->name('products.index');

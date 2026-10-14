@@ -52,6 +52,13 @@ return [
             'throw' => true,
         ],
 
+        'account_deletions' => [
+            'driver' => 'local',
+            'root' => storage_path('app/account-deletions'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
