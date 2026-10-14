@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SearchPublicCatalog;
+use App\Http\Requests\PublicSearchRequest;
 use App\Models\Store;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\View\View;
 
 class PublicStoreController extends Controller
 {
-    public function index(): View
+    public function index(PublicSearchRequest $request, SearchPublicCatalog $search): View
     {
         return view('welcome', [
-            'stores' => Store::query()->active()
-                ->withCount(['products as active_products_count' => fn (Builder $query) => $query->active()])
-                ->with('presentationProduct.coverImage')
-                ->orderBy('name')->orderBy('id')->paginate(12),
+            'stores' => $search->stores($request->filters()),
+            'filters' => $request->filters(),
         ]);
     }
 
