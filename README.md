@@ -1,4 +1,5 @@
 # AL Commerce
+<img width="1254" height="1254" alt="image" src="https://github.com/user-attachments/assets/b9ebc584-9659-46a9-a4c2-be913d8c0d66" />
 
 > Encontre produtos disponíveis no comércio local e fale diretamente com a loja.
 
