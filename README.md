@@ -42,6 +42,12 @@ O cadastro inicia o fluxo de verificação de e-mail. O acesso ao painel e ao ge
 
 ![Tela de cadastro de lojista com apresentação do AL Commerce e formulário de criação de conta](resources/images/readme/cadastro-lojista.png)
 
+### Verificação de e-mail
+
+A tela de verificação orienta o lojista a confirmar seu endereço antes de acessar o painel. Ela informa o envio do link e permite reenviar a mensagem ou continuar explorando as lojas públicas.
+
+![Tela de verificação de e-mail com aviso de envio do link, orientações de confirmação e botão de reenvio](resources/images/readme/verificacao-email.png)
+
 ### Painel do lojista
 
 Uma visão direta da loja: status, localização, endereço público e quantidade de produtos cadastrados. A partir do painel, o proprietário acessa sua vitrine, edita o negócio e gerencia o catálogo.
