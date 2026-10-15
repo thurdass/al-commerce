@@ -23,17 +23,24 @@
         </div>
     </section>
 
-    @if (! $productSearch && ! $filters && $stores->onFirstPage() && $stores->isNotEmpty())
+    @php
+        $featuredStores = ! $productSearch && ! $filters && $stores->onFirstPage() && $stores->count() >= 6
+            ? $stores->getCollection()->take(3)
+            : collect();
+        $listedStores = $productSearch ? collect() : $stores->getCollection()->skip($featuredStores->count());
+    @endphp
+
+    @if ($featuredStores->isNotEmpty())
         <section class="featured-stores" aria-labelledby="featured-heading">
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Conheça de perto</p>
                     <h2 id="featured-heading">Lojas em destaque</h2>
                 </div>
-                <a class="text-link" href="#results-heading">Ver todas as lojas <span aria-hidden="true">↗</span></a>
+                <a class="text-link" href="#results-heading">Ver mais lojas <span aria-hidden="true">↗</span></a>
             </div>
             <div class="catalog-grid store-grid">
-                @foreach ($stores->take(3) as $store)
+                @foreach ($featuredStores as $store)
                     @include('stores.partials.public-card', ['store' => $store])
                 @endforeach
             </div>
@@ -43,7 +50,7 @@
     <section aria-labelledby="results-heading">
         <div class="catalog-toolbar">
             <div class="catalog-results-heading">
-                <h2 id="results-heading">{{ $productSearch ? 'Produtos encontrados' : ($filters ? 'Lojas encontradas' : 'Todas as lojas') }} ({{ $productSearch ? $products->total() : $stores->total() }})</h2>
+                <h2 id="results-heading">{{ $productSearch ? 'Produtos encontrados' : ($filters ? 'Lojas encontradas' : ($featuredStores->isNotEmpty() ? 'Mais lojas' : 'Todas as lojas')) }} ({{ $productSearch ? $products->total() : $stores->total() - $featuredStores->count() }})</h2>
             </div>
             @include('partials.catalog-filters', ['searchUrl' => route('home')])
         </div>
@@ -58,7 +65,7 @@
             @include('partials.pagination', ['paginator' => $products, 'label' => 'produtos'])
         @else
             <div class="catalog-grid store-grid">
-                @forelse ($stores as $store)
+                @forelse ($listedStores as $store)
                     @include('stores.partials.public-card', ['store' => $store])
                 @empty
                     <x-empty-state>{{ $filters ? 'Nenhuma loja encontrada com os filtros informados.' : 'Nenhuma loja disponível no momento.' }}</x-empty-state>

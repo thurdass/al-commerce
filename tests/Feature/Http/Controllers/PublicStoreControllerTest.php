@@ -8,6 +8,7 @@ use App\Models\ProductImage;
 use App\Models\Store;
 use App\ProductAvailabilityStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class PublicStoreControllerTest extends TestCase
@@ -44,22 +45,45 @@ class PublicStoreControllerTest extends TestCase
         $this->assertSame([$stores->last()->id], $response->viewData('stores')->pluck('id')->all());
     }
 
-    public function test_home_highlights_the_first_three_stores_before_filters_and_keeps_the_full_listing(): void
+    public function test_home_highlights_three_stores_without_repeating_them_in_the_remaining_listing(): void
     {
-        Store::factory()->count(4)->sequence(
+        $stores = Store::factory()->count(6)->sequence(
             ['name' => 'Armazém Local'],
             ['name' => 'Bazar Local'],
             ['name' => 'Casa Local'],
             ['name' => 'Doceria Local'],
+            ['name' => 'Empório Local'],
+            ['name' => 'Florista Local'],
         )->create();
 
         $response = $this->get(route('home'));
 
         $response->assertOk()->assertSeeInOrder([
             'Lojas em destaque', 'Armazém Local', 'Bazar Local', 'Casa Local',
-            'Todas as lojas (4)', 'Ordenar por',
-            'Armazém Local', 'Bazar Local', 'Casa Local', 'Doceria Local',
+            'Mais lojas (3)', 'Ordenar por',
+            'Doceria Local', 'Empório Local', 'Florista Local',
         ]);
+        foreach ($stores as $store) {
+            $url = route('public.stores.show', ['store' => $store->slug]);
+            $this->assertSame(1, substr_count($response->getContent(), 'href="'.$url.'"'));
+        }
+        $this->assertCount(6, $response->viewData('stores'));
+    }
+
+    #[TestWith([1])]
+    #[TestWith([3])]
+    #[TestWith([5])]
+    public function test_small_catalog_uses_one_listing_instead_of_repeating_featured_stores(int $count): void
+    {
+        $stores = Store::factory()->count($count)->create();
+
+        $response = $this->get(route('home'))->assertOk()->assertDontSee('Lojas em destaque')
+            ->assertSee('Todas as lojas ('.$count.')');
+
+        foreach ($stores as $store) {
+            $url = route('public.stores.show', ['store' => $store->slug]);
+            $this->assertSame(1, substr_count($response->getContent(), 'href="'.$url.'"'));
+        }
     }
 
     public function test_empty_home_and_store_have_clear_empty_states(): void

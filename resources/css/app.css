@@ -102,6 +102,9 @@
 .card-media .catalog-image { width: 100%; height: 100%; object-fit: contain; transition: transform .3s ease; }
 .card-media:hover .catalog-image { transform: scale(1.025); }
 .store-card .card-media { aspect-ratio: 3 / 2; }
+.store-card-link { display: flex; flex: 1; flex-direction: column; gap: var(--space-4); min-width: 0; color: inherit; }
+.store-card-link:hover { text-decoration: none; }
+.store-card-cta { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; color: var(--ink); font-weight: 500; }
 .card-body { display: grid; gap: var(--space-2); padding-top: var(--space-1); }
 .card-title-row { display: flex; gap: var(--space-3); justify-content: space-between; align-items: start; }
 .card-title-row h3 { flex: 1; min-width: 0; }
