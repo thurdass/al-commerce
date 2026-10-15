@@ -108,9 +108,79 @@ Para iniciar o servidor de desenvolvimento:
 php artisan serve
 ```
 
-O comando informa o endereço local de acesso. A etapa atual não exige instalação ou compilação de dependências de frontend.
+O comando informa o endereço local de acesso. Para o frontend, use Node.js 24 e execute `npm ci --ignore-scripts`, seguido de `npm run dev` em outro terminal, ou `npm run build` para gerar os assets estáticos.
 
 Para atualizar uma instalação da Etapa 1, aplique as migrations com `php artisan migrate`. A nova migration torna `stores.category` opcional e preserva os registros, as chaves estrangeiras e os índices existentes.
+
+## Desenvolvimento com Docker (opcional)
+
+O ambiente local acima continua disponível. O Compose oferece uma alternativa com PHP 8.3-FPM (`app`), Nginx (`web`), MySQL 8.4 (`mysql`), Node.js 24 com HMR (`vite`) e o agendador Laravel (`scheduler`). Não há worker de filas. O scheduler executa as tarefas já existentes, incluindo a recuperação de exclusões de conta.
+
+É necessário Docker Engine com Docker Compose v2 ou superior. O MySQL do Docker usa um volume próprio e não publica a porta 3306. Dados, uploads privados, backups de exclusão, cache, dependências e assets do Docker ficam em volumes separados do ambiente local. Os dois ambientes não compartilham os mesmos registros ou imagens; o código-fonte é compartilhado.
+
+Na primeira execução, mantenha seu `.env` atual ou copie `.env.example` para `.env` se ele ainda não existir. O Compose substitui a conexão de banco somente dentro dos containers e preserva as configurações SMTP do `.env`, inclusive Gmail.
+
+```bash
+docker compose build app vite
+docker compose run --rm --no-deps app composer install --no-interaction --prefer-dist
+```
+
+Somente se `APP_KEY` estiver vazio, execute `docker compose run --rm --no-deps app php artisan key:generate --no-interaction`. Esse comando grava a chave no `.env` compartilhado; preserve uma chave já existente.
+
+Prepare o banco isolado e inicie os serviços:
+
+```bash
+docker compose run --rm app php artisan migrate --no-interaction
+docker compose up -d --wait
+```
+
+A aplicação usa a porta **8080** e o Vite a **5175**, ambas acessíveis apenas pela máquina local. As portas foram separadas das usadas no desenvolvimento sem containers. Para personalizar portas, credenciais exclusivas do MySQL Docker ou UID/GID no Linux, copie `.env.docker.example` para `.env.docker` e acrescente `--env-file .env.docker` a **todos** os comandos Compose. O arquivo é ignorado pelo Git e não substitui o `.env` lido pelo Laravel. Ajuste `DOCKER_UID` e `DOCKER_GID` para os valores de `id -u` e `id -g`, depois reconstrua as imagens antes da primeira inicialização dos volumes.
+
+As credenciais padrão do banco são destinadas apenas ao desenvolvimento isolado. Trocar essas variáveis depois de criar o volume não altera senhas já gravadas no MySQL.
+
+Comandos comuns:
+
+```bash
+docker compose exec app php artisan test --compact
+docker compose exec app php artisan migrate:status --no-interaction
+docker compose exec app php artisan schedule:list --no-interaction
+docker compose logs --tail=100 app web vite scheduler
+docker compose stop
+docker compose up -d --wait
+docker compose down
+```
+
+Os testes continuam usando SQLite em memória e transporte de e-mail em memória, mesmo quando o container recebe variáveis do MySQL ou do Mailpit. A suíte não utiliza o banco de desenvolvimento Docker nem envia e-mails reais. Se tiver criado um cache de configuração, execute `docker compose exec app php artisan config:clear --no-interaction` antes dos testes.
+
+`down` preserva os volumes; `down -v` apaga definitivamente o banco, uploads e demais dados do Docker. Não use a segunda opção para uma instalação com dados que deseja manter. Após mudanças no `composer.lock`, execute `docker compose exec app composer install --no-interaction`; após mudanças no `package-lock.json`, reinicie `vite`. O Vite usa um arquivo de HMR dentro do storage Docker, sem alterar `public/hot` ou o manifest de fontes do ambiente local. Antes de desligar apenas o Vite, gere os assets com `docker compose exec vite npm run build`, depois execute `docker compose stop vite`; o Laravel passa a usar o build estático.
+
+### Mailpit opcional
+
+O Mailpit não é dependência de nenhum serviço. O fluxo padrão continua usando o SMTP do `.env`. Para capturar e-mails de desenvolvimento sem enviar mensagens pelo Gmail, ative explicitamente o perfil e a configuração alternativa:
+
+```bash
+docker compose -f compose.yaml -f compose.mailpit.yaml --profile mailpit up -d --wait
+```
+
+As mensagens ficam na interface do Mailpit, porta **8025**. O SMTP interno usa `mailpit:1025`, sem publicar essa porta no host. A configuração alternativa afeta somente os containers `app` e `scheduler`; não edite o SMTP do `.env` para isso. Caso tenha executado `config:cache` dentro do Docker, limpe com `php artisan config:clear` no serviço `app` ao trocar o transporte.
+
+Para voltar ao SMTP real:
+
+```bash
+docker compose --profile mailpit stop mailpit
+docker compose up -d --wait
+```
+
+### Imagens para produção
+
+O Dockerfile também oferece os targets `production` (PHP com dependências sem desenvolvimento) e `web-production` (Nginx com assets compilados). Eles não contêm `.env`, uploads locais, dependências Node ou ferramentas de teste. Podem ser construídos com:
+
+```bash
+docker build --target production -t al-commerce-app:production .
+docker build --target web-production -t al-commerce-web:production .
+```
+
+O Compose padrão é de desenvolvimento. Para usar as imagens em produção, forneça configuração e segredos em runtime, `APP_ENV=production`, `APP_DEBUG=false`, domínio HTTPS, persistência para todo `storage`, cache gravável e backup do MySQL; use a mesma imagem PHP no scheduler. Migrations são uma etapa explícita de implantação. Não execute `config:cache` durante o build, pois ele depende da configuração real de runtime. Nenhum deploy é realizado por estes comandos de build.
 
 ## Fluxo do lojista
 
