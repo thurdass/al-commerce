@@ -54,6 +54,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'vite_hot_file' => env('LARAVEL_VITE_HOT_FILE', public_path('hot')),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -1,0 +1,13 @@
+# Explicit opt-in: -f compose.yaml -f compose.mailpit.yaml --profile mailpit
+services:
+  app:
+    environment: &mailpit-environment
+      MAIL_MAILER: smtp
+      MAIL_SCHEME: "null"
+      MAIL_URL: "null"
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USERNAME: "null"
+      MAIL_PASSWORD: "null"
+  scheduler:
+    environment: *mailpit-environment

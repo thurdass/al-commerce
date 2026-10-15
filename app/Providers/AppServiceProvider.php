@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Vite::useHotFile(config('app.vite_hot_file'));
+
         VerifyEmail::toMailUsing(function (User $user, string $url): MailMessage {
             return (new MailMessage)
                 ->subject('Confirme seu e-mail — AL Commerce')
