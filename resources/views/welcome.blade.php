@@ -52,7 +52,7 @@
             <div class="catalog-results-heading">
                 <h2 id="results-heading">{{ $productSearch ? 'Produtos encontrados' : ($filters ? 'Lojas encontradas' : ($featuredStores->isNotEmpty() ? 'Mais lojas' : 'Todas as lojas')) }} ({{ $productSearch ? $products->total() : $stores->total() - $featuredStores->count() }})</h2>
             </div>
-            @include('partials.catalog-filters', ['searchUrl' => route('home')])
+            @include('partials.catalog-filters', ['searchUrl' => route('home'), 'navigationFilters' => true])
         </div>
         @if ($productSearch)
             <div class="catalog-grid">

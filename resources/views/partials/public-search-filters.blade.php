@@ -1,12 +1,12 @@
 @if (! $withinStore)
-    <div class="filter-field">
+    <div class="filter-field filter-field--city">
         <label for="cidade">{{ ($compact ?? false) ? 'Cidade' : 'Cidade (nome ou parte dele)' }}</label>
-        <input id="cidade" @isset($formId) form="{{ $formId }}" @endisset name="cidade" @if ($compact ?? false) placeholder="Nome ou parte dele" @endif maxlength="255" value="{{ $filters['cidade'] ?? '' }}">
+        <input id="cidade" @isset($formId) form="{{ $formId }}" @endisset name="cidade" @if ($compact ?? false) placeholder="{{ ($navigationFilters ?? false) ? 'Cidade' : 'Nome ou parte dele' }}" @endif maxlength="255" value="{{ $filters['cidade'] ?? '' }}">
     </div>
 
-    <div class="filter-field">
+    <div class="filter-field filter-field--state">
         <label for="estado">Estado (UF)</label>
-        <input id="estado" @isset($formId) form="{{ $formId }}" @endisset name="estado" maxlength="2" placeholder="BA" value="{{ $filters['estado'] ?? '' }}">
+        <input id="estado" @isset($formId) form="{{ $formId }}" @endisset name="estado" maxlength="2" placeholder="{{ ($navigationFilters ?? false) ? 'UF' : 'BA' }}" value="{{ $filters['estado'] ?? '' }}">
     </div>
 @endif
 
@@ -32,7 +32,7 @@
     </div>
 @endif
 
-<div class="filter-field">
+<div class="filter-field filter-field--sort">
     <label for="ordenar">Ordenar por</label>
     <select id="ordenar" @isset($formId) form="{{ $formId }}" @endisset name="ordenar">
         <option value="nome" @selected(($filters['ordenar'] ?? ($productSearch ? 'recentes' : 'nome')) === 'nome')>Nome (A–Z)</option>
